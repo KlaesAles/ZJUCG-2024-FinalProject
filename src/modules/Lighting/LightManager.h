@@ -13,19 +13,20 @@ private:
     unsigned int maxLights;                     // 最大支持的光源数
 
     struct LightData {
-        glm::vec4 position;    // 光源位置 (点光源、聚光灯)
-        glm::vec4 direction;   // 光源方向 (方向光、聚光灯)
-        glm::vec4 color;       // 光源颜色和强度 (xyz: 颜色, w: 强度)
-        glm::vec4 params;      // 额外参数 (cutoffAngle, type, 保留)
+        alignas(16) glm::vec4 position;    // 光源位置 (16字节对齐)
+        alignas(16) glm::vec4 direction;   // 光源方向 (16字节对齐)
+        alignas(16) glm::vec4 color;       // 光源颜色和强度 (16字节对齐)
+        alignas(16) glm::vec4 params;      // 额外参数 (16字节对齐)
     };
 
 public:
     LightManager(unsigned int maxLights = 16)
         : maxLights(maxLights) {
+        const size_t blockSize = 4 * sizeof(glm::vec4) * maxLights; // 4个数组，每个数组maxLights个vec4
         // 初始化 UBO
         glGenBuffers(1, &ubo);
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        glBufferData(GL_UNIFORM_BUFFER, maxLights * sizeof(LightData), nullptr, GL_DYNAMIC_DRAW);
+        glBufferData(GL_UNIFORM_BUFFER, blockSize, nullptr, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -51,52 +52,95 @@ public:
         }
     }
 
+	// 获取光源数量
+    size_t getLightCount() const {
+        return lights.size();
+    }
+
+    // 获取指定索引的光源
+    std::shared_ptr<Light> getLight(int index) const {
+        if (index >= 0 && index < static_cast<int>(lights.size())) {
+            return lights[index];
+        }
+        else {
+            throw std::runtime_error("Invalid light index!");
+        }
+    }
+
+    // 获取所有光源的引用
+    const std::vector<std::shared_ptr<Light>>& getLights() const {
+        return lights;
+    }
+
     // 更新 UBO 数据
     void updateUBO() const {
-        std::vector<LightData> lightData(lights.size());
+        // 为每种数据类型创建临时数组
+        std::vector<glm::vec4> positions(maxLights, glm::vec4(0.0f));
+        std::vector<glm::vec4> directions(maxLights, glm::vec4(0.0f));
+        std::vector<glm::vec4> colors(maxLights, glm::vec4(0.0f));
+        std::vector<glm::vec4> params(maxLights, glm::vec4(0.0f));
 
+         // 填充数据
         for (size_t i = 0; i < lights.size(); ++i) {
             const auto& light = lights[i];
-            LightData& data = lightData[i];
-
-            data.color = glm::vec4(light->getColor(), light->getIntensity());
+            
+            // 设置颜色和强度
+            colors[i] = glm::vec4(light->getColor(), light->getIntensity());
 
             switch (light->getType()) {
-                case LightType::Directional:
-                    data.direction = glm::vec4(light->getDirection(), 0.0f); // w=0表示方向光
-                    data.position = glm::vec4(0.0f);                         // 方向光没有位置
-                    data.params = glm::vec4(0.0f, static_cast<float>(LightType::Directional), 0.0f, 0.0f);
+                case LightType::Directional: {
+                    directions[i] = glm::vec4(light->getDirection(), 0.0f);
+                    positions[i] = glm::vec4(0.0f);
+                    params[i] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
                     break;
-
-                case LightType::Point:
-                    data.position = glm::vec4(light->getPosition(), 1.0f);  // w=1表示点光源
-                    data.direction = glm::vec4(0.0f);                       // 点光源没有方向
-                    data.params = glm::vec4(0.0f, static_cast<float>(LightType::Point), 0.0f, 0.0f);
+                }
+                case LightType::Point: {
+                    positions[i] = glm::vec4(light->getPosition(), 1.0f);
+                    directions[i] = glm::vec4(0.0f);
+                    params[i] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
                     break;
-
-                case LightType::Spot:
-                    data.position = glm::vec4(light->getPosition(), 1.0f);  // 聚光灯有位置
-                    data.direction = glm::vec4(light->getDirection(), 1.0f);
-                    data.params = glm::vec4(static_cast<const SpotLight*>(light.get())->getCutoffAngle(),
-                                            static_cast<float>(LightType::Spot), 0.0f, 0.0f);
+                }
+                case LightType::Spot: {
+                    positions[i] = glm::vec4(light->getPosition(), 1.0f);
+                    directions[i] = glm::vec4(light->getDirection(), 1.0f);
+                    auto* spotLight = static_cast<const SpotLight*>(light.get());
+                    params[i] = glm::vec4(spotLight->getCutoffAngle(), 2.0f, 0.0f, 0.0f);
                     break;
+                }
             }
         }
 
-        // 更新 UBO 数据
+        // 绑定缓冲区并更新数据
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, lights.size() * sizeof(LightData), lightData.data());
+        
+        // 更新每个数组的数据，注意偏移量
+        size_t offset = 0;
+        const size_t arraySize = sizeof(glm::vec4) * maxLights;
+        
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, positions.data());
+        offset += arraySize;
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, directions.data());
+        offset += arraySize;
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, colors.data());
+        offset += arraySize;
+        glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, params.data());
+
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
     // 绑定 UBO 到指定 Shader 的绑定点
     void bindUBOToShader(const Shader& shader, unsigned int bindingPoint = 0) const {
+        // 获取Uniform块索引
         unsigned int blockIndex = glGetUniformBlockIndex(shader.ID, "LightBlock");
-        glUniformBlockBinding(shader.ID, blockIndex, bindingPoint);
-
-        // 将 UBO 绑定到绑定点
-        glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo);
+        if (blockIndex != GL_INVALID_INDEX) {
+            // 将Uniform块绑定到绑定点
+            glUniformBlockBinding(shader.ID, blockIndex, bindingPoint);
+            // 将UBO绑定到相同的绑定点
+            glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo);
+        } else {
+            std::cout << "Warning: LightBlock not found in shader program" << std::endl;
+        }
     }
-};
 
+};
 #endif // LIGHT_MANAGER_H

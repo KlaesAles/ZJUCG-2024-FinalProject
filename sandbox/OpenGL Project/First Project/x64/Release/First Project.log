@@ -1,16 +1,25 @@
-﻿  glad.c
-  imgui.cpp
-  imgui_demo.cpp
-  imgui_draw.cpp
-  imgui_impl_glfw.cpp
-  imgui_impl_opengl3.cpp
-  imgui_stdlib.cpp
-  imgui_tables.cpp
-  imgui_widgets.cpp
-  Mesh.cpp
-  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+﻿  Shadow Test.cpp
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow\ShadowManager.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“Shadow%20Test.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Light.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“Shadow%20Test.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\LightManager.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“Shadow%20Test.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(264,44): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(294,106): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(363,52): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(395,76): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(406,41): warning C4267: “参数”: 从“size_t”转换到“GLenum”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(407,73): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(409,52): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Shadow Test.cpp(412,71): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
 LINK : warning LNK4098: 默认库“MSVCRTD”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   正在生成代码
-  All 1526 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  31 of 3046 functions ( 1.0%) were compiled, the rest were copied from previous compilation.
+    2 functions were new in current compilation
+    51 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
   First Project.vcxproj -> E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\x64\Release\First Project.exe
