@@ -8,6 +8,7 @@ out VS_OUT {
     vec3 Normal;
     vec2 TexCoords;
     vec4 FragPosLightSpace[16]; // 对应每个光源的光空间坐标
+    mat4 model;
 } vs_out;
 
 uniform mat4 model;
@@ -19,12 +20,13 @@ uniform int lightCount;
 void main()
 {
     vs_out.FragPos = vec3(model * vec4(aPos, 1.0));
-    vs_out.Normal = mat3(transpose(inverse(model))) * aNormal;  
+    vs_out.Normal = aNormal;  
     vs_out.TexCoords = aTexCoords;
+    vs_out.model = model;
     
     // 计算每个光源的光空间坐标
     for(int i = 0; i < lightCount; i++) {
-        vs_out.FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(vs_out.FragPos, 1.0);
+        vs_out.FragPosLightSpace[i] = lightSpaceMatrices[i] * vec4(aPos, 1.0);
     }
     
     gl_Position = projection * view * vec4(vs_out.FragPos, 1.0);

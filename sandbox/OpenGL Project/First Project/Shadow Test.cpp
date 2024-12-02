@@ -32,8 +32,8 @@ unsigned int loadTexture(char const* path);
 bool mouseCaptured = true;  // 初始状态为捕获鼠标
 
 // Settings
-unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 1600;
+unsigned int SCR_HEIGHT = 1200;
 
 // Camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -51,13 +51,14 @@ glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
 float planeVertices[] = {
-    // positions          // normals           // texture coords
-    -10.0f, -4.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-     10.0f, -4.0f, -10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-     10.0f, -4.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-     10.0f, -4.0f,  10.0f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    -10.0f, -4.0f,  10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-    -10.0f, -4.0f, -10.0f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+    // Positions          // Normals         // Texture Coords
+        25.0f, -2.0f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+        -25.0f, -2.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
+        -25.0f, -2.0f, 25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+
+        25.0f, -2.0f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+        25.0f, -2.0f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f,
+        -25.0f, -2.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f
 };
 
 float cubeVertices[] = {
@@ -106,12 +107,22 @@ float cubeVertices[] = {
 };
 // positions all containers
 glm::vec3 cubePositions[] = {
-    glm::vec3(0.0f,  -2.0f, 0.0f),
-    glm::vec3(2.0f,  0.0f, 0.0f),
+    glm::vec3(4.0f, -3.5f, 0.0),
+    glm::vec3(2.0f, 3.0f, 1.0),
+    glm::vec3(-3.0f, -1.0f, 0.0),
+    glm::vec3(-1.5f, 1.0f, 1.5),
+    glm::vec3(-1.5f, 2.0f, -3.0),
+};
+glm::vec3 cubeScale[] = {
+    glm::vec3(1.0f),
+    glm::vec3(1.5f),
+    glm::vec3(1.0f),
+    glm::vec3(1.0f),
+    glm::vec3(1.5f),
 };
 // positions of the point lights
 glm::vec3 pointLightPositions[] = {
-    glm::vec3(0.7f,  0.2f,  2.0f),
+    glm::vec3((0.0f, 0.0f, 0.0f)),
 };
 
 // Main
@@ -230,23 +241,23 @@ int main()
     sceneObjects.emplace_back(planeVAO, 6, glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(0.0f));
 
     // 初始化场景中的立方体
-    float Scale = 0.0f;
-    for (const auto& position : cubePositions) {
-		Scale += 1.0f;
-        sceneObjects.emplace_back(cubeVAO, 36, position, glm::vec3(Scale), glm::vec3(0.0f, 0.0, 0.0f));
+    for (int i = 0; i < sizeof(cubePositions) / sizeof(cubePositions[1]); ++i ) {
+        sceneObjects.emplace_back(cubeVAO, 36, cubePositions[i], cubeScale[i], glm::vec3(0.0f, 0.0, 0.0f));
     }
 
     // 光源管理器
     LightManager lightManager(16); // 最多支持16个光源
 
     // 初始化点光源
+    /*
     for (const auto& position : pointLightPositions) {
         auto pointLight = std::make_shared<PointLight>(position, glm::vec3(1.0f));
         lightManager.addLight(pointLight);
     }
+    */
 
     // 初始化定向光
-	auto dirLight = std::make_shared<DirectionalLight>(glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(1.0f), 1.0f);
+	auto dirLight = std::make_shared<DirectionalLight>(glm::vec3(2.0f, -4.0f, 1.0f), glm::vec3(1.0f));
     lightManager.addLight(dirLight);
 
     // 初始化聚光灯
@@ -259,23 +270,13 @@ int main()
     // 将 shadowManager 传递给窗口
     glfwSetWindowUserPointer(window, &shadowManager);
 
-    // 配置每个光源的阴影
-    for (size_t i = 0; i < lightManager.getLightCount(); ++i) {
-        auto light = lightManager.getLight(i);
-        // 根据光源类型设置不同的分辨率
-        int resolution = 4096; // 可以根据光源类型设置不同分辨率
-        if (light->getType() == LightType::Directional) {
-            resolution = 4096; // 方向光使用更高分辨率
-        }
-        shadowManager.addLight(*light.get(), resolution);
-    }
-
-
     // shader configuration
     // --------------------
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
+
+	bool debugView = 0;
 
     // 渲染循环
     while (!glfwWindowShouldClose(window)) 
@@ -329,22 +330,7 @@ int main()
             }
         }
 
-        static float shadowBias = 0.005f;
-        if (ImGui::SliderFloat("Shadow Bias", &shadowBias, 0.0f, 0.01f)) {
-            lightingShader.setFloat("shadowBias", shadowBias);
-        }
-
-        static float orthoSize = 20.0f;
-        if (ImGui::SliderFloat("Shadow Ortho Size", &orthoSize, 10.0f, 50.0f)) {
-            // 更新方向光的正交投影大小
-            if (auto dirLight = std::dynamic_pointer_cast<DirectionalLight>(lightManager.getLight(1))) {
-                // 添加设置正交大小的方法到DirectionalLight类
-                dirLight->setOrthoSize(orthoSize);
-            }
-        }
-
-        static bool showShadowMap = false;
-        ImGui::Checkbox("Show Shadow Map", &showShadowMap);
+        ImGui::Checkbox("Debug View", &debugView);
 
         ImGui::End();
 
@@ -363,7 +349,10 @@ int main()
             lights.push_back(lightManager.getLight(i).get());
         }
 
-        // 生成所有光源的阴影贴图
+		// 设置阴影贴图分辨率
+        shadowManager.updateShadowResolution(2048);
+
+        // 动态生成阴影贴图
         shadowManager.generateShadowMaps(lights, objects, ShadowShader.ID);
 
         // render
@@ -389,10 +378,12 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.use();
 
+        lightingShader.setInt("debugView", debugView);
+
         // 设置所有光源的光空间矩阵
         std::vector<glm::mat4> lightSpaceMatrices;
         for (size_t i = 0; i < lightManager.getLightCount(); ++i) {
-            lightSpaceMatrices.push_back(shadowManager.getLightSpaceMatrix(i));
+            lightSpaceMatrices.push_back(shadowManager.getLightSpaceMatrix(lights, i));
         }
 
         // 传递光空间矩阵到着色器

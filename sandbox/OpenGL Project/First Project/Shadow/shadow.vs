@@ -7,5 +7,5 @@ uniform mat4 model;                 // 模型矩阵
 uniform mat4 lightSpaceMatrix;      // 光源的投影 * 视图矩阵
 
 void main() {
-    gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0);
+    gl_Position = lightSpaceMatrix * vec4(aPos, 1.0);
 }

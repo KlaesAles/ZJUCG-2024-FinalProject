@@ -67,15 +67,16 @@ public:
         return glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, nearPlane, farPlane);
     }
 
-    glm::mat4 getViewMatrix() const override {
-        // 使用光源方向计算视图矩阵
-        glm::vec3 lightDir = glm::normalize(direction);
-        glm::vec3 right = glm::cross(lightDir, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::vec3 up = glm::cross(right, lightDir);
-        return glm::lookAt(-lightDir * 10.0f, glm::vec3(0.0f), up);
+    glm::mat4 getViewMatrix() const override{
+        glm::vec3 lightTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 lightPos = getPosition();
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+        if (abs(direction.y) > 0.99f)
+            up = glm::vec3(1.0f, 0.0f, 0.0f); // 避免与光源平行
+        return glm::lookAt(lightPos, lightTarget, up);
     }
 
-    glm::vec3 getPosition() const override { return -direction * 10.0f; }
+    glm::vec3 getPosition() const override { return -direction; }
 
     glm::vec3 getDirection() const override { return direction; }
 
@@ -123,8 +124,19 @@ public:
         return glm::perspective(glm::radians(90.0f), 1.0f, nearPlane, farPlane);
     }
 
+    std::vector<glm::mat4> getViewMatrices() const{
+        std::vector<glm::mat4> views;
+        views.push_back(glm::lookAt(position, position + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0)));  // +X
+        views.push_back(glm::lookAt(position, position + glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0))); // -X
+        views.push_back(glm::lookAt(position, position + glm::vec3(0, 1, 0), glm::vec3(0, 0, 1)));   // +Y
+        views.push_back(glm::lookAt(position, position + glm::vec3(0, -1, 0), glm::vec3(0, 0, -1))); // -Y
+        views.push_back(glm::lookAt(position, position + glm::vec3(0, 0, 1), glm::vec3(0, -1, 0)));  // +Z
+        views.push_back(glm::lookAt(position, position + glm::vec3(0, 0, -1), glm::vec3(0, -1, 0))); // -Z
+        return views;
+    }
+
     glm::mat4 getViewMatrix() const override {
-        throw std::runtime_error("PointLight does not have a single view matrix!");
+    throw std::runtime_error("PointLight does not have a single view matrix!");
     }
 
     glm::vec3 getPosition() const override { return position; }
