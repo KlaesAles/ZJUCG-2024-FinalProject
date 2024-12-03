@@ -1,16 +1,30 @@
-﻿  glad.c
-  imgui.cpp
-  imgui_demo.cpp
-  imgui_draw.cpp
-  imgui_impl_glfw.cpp
-  imgui_impl_opengl3.cpp
-  imgui_stdlib.cpp
-  imgui_tables.cpp
-  imgui_widgets.cpp
-  Mesh.cpp
-  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+﻿  main.cpp
+H:\workspace\CompCG_Proj\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\main.cpp(144,55): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
 LINK : warning LNK4098: 默认库“MSVCRTD”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   正在生成代码
-  All 1526 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  82 of 1951 functions ( 4.2%) were compiled, the rest were copied from previous compilation.
+    62 functions were new in current compilation
+    34 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
-  First Project.vcxproj -> E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\x64\Release\First Project.exe
+glfw3.lib(context.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(context.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(input.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(input.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(window.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(window.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(vulkan.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(vulkan.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(monitor.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(monitor.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(init.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(init.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_window.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_window.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_thread.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_thread.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_time.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_time.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_module.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_module.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(platform.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(platform.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_init.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_init.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_monitor.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_monitor.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(wgl_context.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(wgl_context.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(egl_context.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(egl_context.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(osmesa_context.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(osmesa_context.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(null_init.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(null_init.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(win32_joystick.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(win32_joystick.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(null_monitor.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(null_monitor.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(null_window.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(null_window.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+glfw3.lib(null_joystick.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(null_joystick.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
+  First Project.vcxproj -> H:\workspace\CompCG_Proj\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\x64\Release\First Project.exe
