@@ -131,8 +131,8 @@ public:
 
         glCullFace(GL_FRONT);
         glEnable(GL_DEPTH_TEST);
-        //glEnable(GL_POLYGON_OFFSET_FILL);
-        //glPolygonOffset(1.0f, 0.001f);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 0.001f);
 
         for (size_t i = 0; i < lights.size(); ++i)
         {
@@ -143,8 +143,11 @@ public:
             glViewport(0, 0, shadowData.resolution, shadowData.resolution);
             glClear(GL_DEPTH_BUFFER_BIT);
 
+
             if (light->getType() == LightType::Point)
             {
+                glUseProgram(shadowShader);
+
                 const auto viewMatrices = static_cast<PointLight *>(light)->getViewMatrices();
                 const auto projectionMatrix = light->getProjectionMatrix();
                 std::vector<glm::mat4> lightSpaceMatrices;
@@ -158,6 +161,8 @@ public:
             }
             else
             {
+                glUseProgram(shadowShader);
+
                 glm::mat4 lightSpaceMatrix = light->getProjectionMatrix() * light->getViewMatrix();
                 glUniformMatrix4fv(glGetUniformLocation(shadowShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
             }

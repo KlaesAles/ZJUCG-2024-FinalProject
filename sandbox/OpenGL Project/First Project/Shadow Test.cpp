@@ -277,6 +277,7 @@ int main()
     lightingShader.setInt("material.specular", 1);
 
 	bool debugView = 0;
+    int debugLightIndex = 0;
 
     // 渲染循环
     while (!glfwWindowShouldClose(window)) 
@@ -331,6 +332,9 @@ int main()
         }
 
         ImGui::Checkbox("Debug View", &debugView);
+        if (debugView) {
+            ImGui::SliderInt("debug Light Index", &debugLightIndex, 0, lightManager.getLightCount() - 1, "%d");
+        }
 
         ImGui::End();
 
@@ -350,7 +354,7 @@ int main()
         }
 
 		// 设置阴影贴图分辨率
-        shadowManager.updateShadowResolution(2048);
+        shadowManager.updateShadowResolution(4096);
 
         // 动态生成阴影贴图
         shadowManager.generateShadowMaps(lights, objects, ShadowShader.ID);
@@ -378,7 +382,9 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         lightingShader.use();
 
+        // 传递Debug参数
         lightingShader.setInt("debugView", debugView);
+        lightingShader.setInt("debugLightIndex", debugLightIndex);
 
         // 设置所有光源的光空间矩阵
         std::vector<glm::mat4> lightSpaceMatrices;

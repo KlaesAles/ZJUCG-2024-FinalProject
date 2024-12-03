@@ -19,6 +19,7 @@ uniform vec3 viewPos;
 uniform Material material;
 uniform sampler2D shadowMaps[16]; // 每个光源的阴影贴图
 uniform int debugView;
+uniform int debugLightIndex;
 
 in VS_OUT {
     vec3 FragPos;
@@ -45,19 +46,12 @@ void main()
 
     // 调试模式：直接显示深度贴图内容
     if (debugView == 1) {
-        vec4 fragPosLightSpace = fs_in.FragPosLightSpace[0]; // 假设调试第一个光源
+        vec4 fragPosLightSpace = fs_in.FragPosLightSpace[debugLightIndex]; // 假设调试第一个光源
         vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w; // 透视除法
         projCoords = projCoords * 0.5 + 0.5; // 转换到 [0, 1] 范围
 
-        // 超出光空间范围则显示黑色
-        if (projCoords.x < 0.0 || projCoords.x > 1.0 || 
-            projCoords.y < 0.0 || projCoords.y > 1.0 || 
-            projCoords.z < 0.0 || projCoords.z > 1.0) {
-            FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-            return;
-        }
 
-        float depth = texture(shadowMaps[0], projCoords.xy).r; // 假设调试第一个光源
+        float depth = texture(shadowMaps[debugLightIndex], projCoords.xy).r; // 假设调试第一个光源
         FragColor = vec4(vec3(depth), 1.0); // 将深度值映射为灰度颜色
         return;
     }
@@ -65,60 +59,50 @@ void main()
     // 正常渲染
     vec3 result = vec3(0.0);
     for(int i = 0; i < lightCount; ++i) {
-        result += CalculateLight(norm, viewDir, fs_in.FragPos, 
-                               position[i], direction[i], color[i], params[i], i);
+        result += CalculateLight(norm, viewDir, fs_in.FragPos, position[i], direction[i], color[i], params[i], i);
     }
-    FragColor = vec4(result, 1.0); 
+
+    // 对光照结果进行修剪到 [0, 1] 范围
+    result = clamp(result, 0.0, 1.0);
+
+    // 输出最终颜色
+    FragColor = vec4(result, 1.0);
+
 }
 
-float CalculateShadow(vec4 fragPosLightSpace, sampler2D shadowMap, vec3 normal, vec3 lightDir, float lightType)
-{
-    if (lightType == 1.0f) // Point Light
-    {
+float CalculateShadow(vec4 fragPosLightSpace, sampler2D shadowMap, vec3 normal, vec3 lightDir, float lightType){
+    vec3 projCoords = vec3(0.0);
+    float shadow = 0.0;
+    float bias = 0.005;
+
+    if (lightType == 1.0) {  // Point Light
         vec3 fragToLight = fragPosLightSpace.xyz;
         float currentDepth = length(fragToLight);
-        vec3 projCoords = fragToLight / currentDepth; // Normalize
-        float bias = 0.05; // Adjust based on scene scale
-
-        float shadow = 0.0;
-        float texelSize = 1.0 / 1024.0; // Example resolution
-        for (int x = -1; x <= 1; ++x)
-        {
-            for (int y = -1; y <= 1; ++y)
-            {
-                for (int z = -1; z <= 1; ++z)
-                {
-                    float sampleDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-                    if (currentDepth - bias > sampleDepth)
-                        shadow += 1.0;
-                }
-            }
-        }
-        shadow /= 27.0; // 3x3x3 PCF
-        return shadow;
+        projCoords = fragToLight / currentDepth;
+        bias = 0.05 * (1.0 - dot(normal, lightDir));
+    } else {  // Directional or Spot Light
+        projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+        projCoords = projCoords * 0.5 + 0.5;
+        bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     }
-    else
-    {
-    // 执行透视除法
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    
-    // 超出光空间范围时不产生阴影
-    if(projCoords.x < 0.0 || projCoords.x > 1.0 || 
-       projCoords.y < 0.0 || projCoords.y > 1.0 || 
-       projCoords.z < 0.0 || projCoords.z > 1.0)
+
+    if (projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0 || projCoords.z < 0.0 || projCoords.z > 1.0)
         return 0.0;
 
     float closestDepth = texture(shadowMap, projCoords.xy).r;
-    
-    float currentDepth = projCoords.z;
-    
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    
-    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    shadow = projCoords.z - bias > closestDepth ? 1.0 : 0.0;
 
-    return shadow;
+    // PCF (Percentage Closer Filtering)
+    float texelSize = 1.0 / 1024.0;
+    float totalShadow = 0.0;
+    int samples = 4; // 2x2 grid for PCF
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            float sampleDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            totalShadow += projCoords.z - bias > sampleDepth ? 1.0 : 0.0;
+        }
     }
+    return totalShadow / 9.0; // Normalize shadow intensity
 }
 
 vec3 CalculateLight(vec3 normal, vec3 viewDir, vec3 fragPos, vec4 position, vec4 direction, vec4 color, vec4 param, int lightIndex)
@@ -139,8 +123,8 @@ vec3 CalculateLight(vec3 normal, vec3 viewDir, vec3 fragPos, vec4 position, vec4
 
         // 环境光 + 漫反射 + 镜面反射
         vec3 ambient = lightColor * vec3(texture(material.diffuse, fs_in.TexCoords)) * 0.1;
-        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords));
-        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords));
+        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords))* (1.0 - shadow);
+        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords))* (1.0 - shadow);
         result = (ambient + diffuse + specular) * intensity * 1.0;
     }
     // Point Light
@@ -155,8 +139,8 @@ vec3 CalculateLight(vec3 normal, vec3 viewDir, vec3 fragPos, vec4 position, vec4
 
         // 环境光 + 漫反射 + 镜面反射
         vec3 ambient = lightColor * vec3(texture(material.diffuse, fs_in.TexCoords)) * 0.1;
-        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords));
-        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords));
+        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords))* (1.0 - shadow);
+        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords))* (1.0 - shadow);
         result = (ambient + diffuse + specular) * attenuation * intensity * 1.5;
     }
     // Spot Light
@@ -178,13 +162,13 @@ vec3 CalculateLight(vec3 normal, vec3 viewDir, vec3 fragPos, vec4 position, vec4
     
         // 增强聚光灯效果
         vec3 ambient = lightColor * vec3(texture(material.diffuse, fs_in.TexCoords)) * 0.05; // 降低环境光
-        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords));
-        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords));
+        vec3 diffuse = lightColor * diff * vec3(texture(material.diffuse, fs_in.TexCoords))* (1.0 - shadow);
+        vec3 specular = lightColor * spec * vec3(texture(material.specular, fs_in.TexCoords))* (1.0 - shadow);
     
         // 使用更强的衰减
         result = (ambient + diffuse + specular) * attenuation * intensityFactor * intensity * 2.0; // 加强整体强度
     }
 
     // 将阴影因子应用到光照计算结果
-    return result * (1.0 - shadow);
+    return result;
 }
