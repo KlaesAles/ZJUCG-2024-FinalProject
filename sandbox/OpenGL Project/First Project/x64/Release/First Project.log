@@ -1,10 +1,10 @@
 ﻿  main.cpp
-H:\workspace\CompCG_Proj\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\main.cpp(144,55): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
+H:\workspace\CompCG_Proj\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\main.cpp(193,55): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
 LINK : warning LNK4098: 默认库“MSVCRTD”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   正在生成代码
-  82 of 1951 functions ( 4.2%) were compiled, the rest were copied from previous compilation.
-    62 functions were new in current compilation
-    34 functions had inline decision re-evaluated but remain unchanged
+  27 of 1975 functions ( 1.4%) were compiled, the rest were copied from previous compilation.
+    24 functions were new in current compilation
+    31 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
 glfw3.lib(context.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(context.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
 glfw3.lib(input.obj) : warning LNK4099: 未找到 PDB“”(使用“glfw3.lib(input.obj)”或在“”中寻找)；正在链接对象，如同没有调试信息一样
