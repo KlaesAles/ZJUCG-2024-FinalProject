@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include "Light.h"
-#include "Shader.h"
+#include "shader.h"
 
 class LightManager {
 private:

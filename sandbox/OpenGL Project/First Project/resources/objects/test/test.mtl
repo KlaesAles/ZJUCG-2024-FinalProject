@@ -1,0 +1,162 @@
+# Blender 3.6.14 MTL File: 'None'
+# www.blender.org
+
+newmtl acc
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl body
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_160_01_C.png
+map_d tex_bdy_COM_160_01_C.png
+
+newmtl body1
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_492_01_C.png
+map_d tex_bdy_COM_492_01_C.png
+
+newmtl eyebrows
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl eyelashes
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl eyes
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl face
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl hair
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl hi
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl mouth
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl white_eyes
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_chr_SCL_D_00_C.png
+map_d tex_chr_SCL_D_00_C.png
+
+newmtl 材質1
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_492_01_C.png
+map_d tex_bdy_COM_492_01_C.png
+
+newmtl 袜
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_492_01_C.png
+map_d tex_bdy_COM_492_01_C.png
+
+newmtl 裙
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_492_01_C.png
+map_d tex_bdy_COM_492_01_C.png
+
+newmtl 鞋
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_160_01_C.png
+map_d tex_bdy_COM_160_01_C.png
+
+newmtl 领巾
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd tex_bdy_COM_492_01_C.png
+map_d tex_bdy_COM_492_01_C.png
