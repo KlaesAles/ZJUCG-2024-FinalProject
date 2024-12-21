@@ -1,162 +1,492 @@
 # Blender 3.6.14 MTL File: 'None'
 # www.blender.org
 
-newmtl acc
+newmtl [Body]タイツ
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl body
+newmtl [Body]パンツ
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_160_01_C.png
-map_d tex_bdy_COM_160_01_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl body1
+newmtl [Body]パンツリボン
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_492_01_C.png
-map_d tex_bdy_COM_492_01_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl eyebrows
+newmtl [Body]ブラ
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl eyelashes
+newmtl [Body]ブラリボン
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl eyes
+newmtl [Body]ブラ紐(消去)
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl face
+newmtl [Body]体上
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl hair
+newmtl [Body]体上(消去)
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl hi
+newmtl [Body]体下
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl mouth
+newmtl [Body]爪
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Body2g.png
+map_d Body2g.png
 
-newmtl white_eyes
+newmtl [Bottoms]スカート
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_chr_SCL_D_00_C.png
-map_d tex_chr_SCL_D_00_C.png
+map_Kd Wear2g.png
+map_d Wear2g.png
 
-newmtl 材質1
+newmtl [Hair]けも耳
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_492_01_C.png
-map_d tex_bdy_COM_492_01_C.png
+map_Kd Hair2g.png
+map_d Hair2g.png
 
-newmtl 袜
+newmtl [Hair]ヘアゴム
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_492_01_C.png
-map_d tex_bdy_COM_492_01_C.png
+map_Kd Hair2g.png
+map_d Hair2g.png
 
-newmtl 裙
+newmtl [Hair]前髪
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_492_01_C.png
-map_d tex_bdy_COM_492_01_C.png
+map_Kd Hair2g.png
+map_d Hair2g.png
 
-newmtl 鞋
+newmtl [Hair]後髪
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_160_01_C.png
-map_d tex_bdy_COM_160_01_C.png
+map_Kd Hair2g.png
+map_d Hair2g.png
 
-newmtl 领巾
+newmtl [Hair]耳周り
 Ns 250.000000
 Ka 1.000000 1.000000 1.000000
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 illum 2
-map_Kd tex_bdy_COM_492_01_C.png
-map_d tex_bdy_COM_492_01_C.png
+map_Kd Hair2g.png
+map_d Hair2g.png
+
+newmtl [Hair]輪っか
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Hair2g.png
+map_d Hair2g.png
+
+newmtl [Head]ほくろ
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]ハイライト
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]口内
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]歯
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]涙(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]特殊目
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]特殊瞳
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]発光瞳
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]白目
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]白目凸
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]眉
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]瞳
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]瞳孔
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Eye2g.png
+map_d Eye2g.png
+
+newmtl [Head]瞼
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]耳
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]舌
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]頬染(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]頬色(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]額色(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]顔ベース
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]首影(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]髪影(透過)
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Head]鼻筋
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Face2g.png
+map_d Face2g.png
+
+newmtl [Outfit]ブローチ
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Outfit]ヘアリボン
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Hair2g.png
+map_d Hair2g.png
+
+newmtl [Outfit]帽子
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Outfit]薔薇
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Hair2g.png
+map_d Hair2g.png
+
+newmtl [Shoes]靴
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Tops]サスペンダー
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Tops]リボン
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Tops]上着
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png
+
+newmtl [Tops]襟
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd Wear2g.png
+map_d Wear2g.png

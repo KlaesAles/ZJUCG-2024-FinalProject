@@ -20,13 +20,14 @@
 #include <vector>
 
 #include <GameObject.h>
+#include <CollisionManager.h>
 
 // Function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-unsigned int loadTexture(char const* path);
+void drawBoundingBox(const BoundingBox& box, const glm::mat4& view, const glm::mat4& projection);
 
 bool mouseCaptured = true;  // 初始状态为捕获鼠标
 
@@ -107,9 +108,9 @@ int main()
     // 创建场景物体容器
     std::vector<GameObject> sceneObjects;
 
-    //sceneObjects.emplace_back("./resources/objects/test/test.obj");
+    sceneObjects.emplace_back("./resources/objects/test/test.obj");
     //sceneObjects.emplace_back("./resources/objects/nanosuit/nanosuit.obj");
-    sceneObjects.emplace_back("./resources/objects/Golden tree disc/Golden tree disc.obj");
+    //sceneObjects.emplace_back("./resources/objects/Golden tree disc/Golden tree disc.obj");
 
     // 光源管理器
     LightManager lightManager(16); // 最多支持16个光源
@@ -141,6 +142,9 @@ int main()
 
     bool debugMaterialView = 0;
     int debugMaterialIndex = 0;
+
+    Renderer renderer(SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager);
+    renderer.initialize();
 
     // 渲染循环
     while (!glfwWindowShouldClose(window))
@@ -207,6 +211,14 @@ int main()
         }
 
         ImGui::End();
+
+        // 更新物体的包围盒
+        for (auto& object : sceneObjects) {
+            object.setPosition(object.getPosition()); // 更新位置和包围盒
+        }
+
+        // 检测物体之间的碰撞
+        CollisionManager::detectCollisions(sceneObjects);
 
         // 渲染阴影
         // 1. 首先渲染深度贴图
@@ -403,42 +415,4 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         return;
 
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
-}
-// utility function for loading a 2D texture from file
-// ---------------------------------------------------
-unsigned int loadTexture(char const* path)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
 }
