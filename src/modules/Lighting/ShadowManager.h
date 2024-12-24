@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "Light.h"
-#include "GameObject.h"
+#include "Scene.h"
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
@@ -122,7 +122,7 @@ public:
 
     ~ShadowManager() = default;
 
-    void generateShadowMaps(const std::vector<Light *> &lights, const std::vector<GameObject *> &sceneObjects, GLuint shadowShader)
+    void generateShadowMaps(const std::vector<Light *> &lights, Scene& scene, GLuint shadowShader)
     {
         syncShadowDataWithLights(lights);
 
@@ -167,10 +167,7 @@ public:
                 glUniformMatrix4fv(glGetUniformLocation(shadowShader, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
             }
 
-            for (const auto &object : sceneObjects)
-            {
-                object->draw(shadowShader);
-            }
+            scene.drawShadowMaps(shadowShader);
         }
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)

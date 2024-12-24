@@ -3,9 +3,14 @@
 
 // 构造函数
 Model::Model(const std::string& path, bool gamma)
-    : gammaCorrection(gamma)
+    : path(path),gammaCorrection(gamma)
 {
     loadModel(path); // 加载模型
+}
+
+// 获取模型路径
+const std::string& Model::getPath() const {
+    return path;
 }
 
 // 从文件加载纹理
@@ -62,7 +67,7 @@ unsigned int TextureFromFile(const char* path, const std::string& directory, boo
 }
 
 // 绘制模型以及它的所有网格
-void Model::Draw(GLint shader)
+void Model::Draw(GLint shader) const
 {
     for (unsigned int i = 0; i < meshes.size(); i++)
         meshes[i].Draw(shader);

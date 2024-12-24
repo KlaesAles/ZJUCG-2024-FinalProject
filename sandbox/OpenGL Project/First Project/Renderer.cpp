@@ -1,14 +1,13 @@
 // Renderer.cpp
 #include "Renderer.h"
 #include <iostream>
+#include <fstream>
 
 // 构造函数
 Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Camera& cam,
-    LightManager& lm, ShadowManager& sm,
-    std::vector<GameObject>& objects)
+    LightManager& lm, ShadowManager& sm, Scene& sc)
     : window(win), SCR_WIDTH(width), SCR_HEIGHT(height),
-    camera(cam), lightManager(lm), shadowManager(sm),
-    sceneObjects(objects),
+    camera(cam), lightManager(lm), shadowManager(sm), scene(sc),
     lightingShader("./shader/Model Shader.vs", "./shader/Model Shader.fs"),
     shadowShader("./Shadow/shadow.vs", "./Shadow/shadow.fs"),
     deltaTime(0.0f), lastFrame(0.0f),
@@ -118,6 +117,15 @@ void Renderer::renderFrame()
     ImGui::NewFrame();
 
     // 绘制控制面板
+    ImGui::Begin("Scene Controls");
+    if (ImGui::Button("Save Scene")) {
+        saveScene("scene.json");
+    }
+    if (ImGui::Button("Load Scene")) {
+        loadScene("scene.json");
+    }
+    ImGui::End();
+
     ImGui::Begin("Light Controls");
     if (lightManager.getLightCount() > 0) {
         auto spotLightPtr = std::dynamic_pointer_cast<SpotLight>(lightManager.getLight(lightManager.getLightCount() - 1));
@@ -230,9 +238,7 @@ void Renderer::renderFrame()
     lightingShader.setInt("lightCount", static_cast<int>(lightManager.getLightCount()));
 
     // 渲染所有游戏对象
-    for (auto& object : sceneObjects) {
-        object.draw(lightingShader.ID);
-    }
+    scene.draw(lightingShader);
 
     std::cout << "Rendering ImGui..." << std::endl;
 
@@ -289,12 +295,7 @@ void Renderer::updateShadowMaps()
 {
     // 动态生成阴影贴图
     std::vector<Light*> lights;
-    std::vector<GameObject*> objects;
-
-    // 收集场景对象指针
-    for (auto& obj : sceneObjects) {
-        objects.push_back(&obj);
-    }
+    const auto& gameObjects = scene.getGameObjects(); // Scene 提供对象列表
 
     // 收集光源指针
     for (size_t i = 0; i < lightManager.getLightCount(); ++i) {
@@ -305,7 +306,44 @@ void Renderer::updateShadowMaps()
     shadowManager.updateShadowResolution(4096);
 
     // 生成阴影贴图
-    shadowManager.generateShadowMaps(lights, objects, shadowShader.ID);
+    shadowManager.generateShadowMaps(lights, scene, shadowShader.ID);
+}
+
+void Renderer::saveScene(const std::string& filePath) {
+    try {
+        nlohmann::json sceneJson = scene.serialize();
+        std::ofstream file(filePath);
+        if (file.is_open()) {
+            file << sceneJson.dump(4); // 格式化输出
+            file.close();
+            std::cout << "Scene saved to " << filePath << std::endl;
+        }
+        else {
+            std::cerr << "Failed to open file for saving: " << filePath << std::endl;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error saving scene: " << e.what() << std::endl;
+    }
+}
+
+void Renderer::loadScene(const std::string& filePath) {
+    try {
+        std::ifstream file(filePath);
+        if (file.is_open()) {
+            nlohmann::json sceneJson;
+            file >> sceneJson;
+            file.close();
+            scene.deserialize(sceneJson);
+            std::cout << "Scene loaded from " << filePath << std::endl;
+        }
+        else {
+            std::cerr << "Failed to open file for loading: " << filePath << std::endl;
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error loading scene: " << e.what() << std::endl;
+    }
 }
 
 void Renderer::cleanup()

@@ -8,6 +8,7 @@
 #include "Light.h"
 #include "GameObject.h"
 #include "CollisionManager.h"
+#include "Scene.h"
 
 #include <iostream>
 #include <vector>
@@ -65,12 +66,12 @@ int main()
     // 创建 ShadowManager
     ShadowManager shadowManager;
 
-    // 创建场景物体容器
-    std::vector<GameObject> sceneObjects;
-    sceneObjects.emplace_back("./resources/objects/test/test.obj");
-    // 根据需要添加更多的游戏对象
-    // sceneObjects.emplace_back("./resources/objects/nanosuit/nanosuit.obj");
-    // sceneObjects.emplace_back("./resources/objects/Golden tree disc/Golden tree disc.obj");
+    // 创建场景
+    Scene scene;
+
+    // 添加场景物体
+    scene.addGameObject(GameObject("./resources/objects/Default/Cube.obj"));
+    scene.addGameObject(GameObject("./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
 
     // 初始化光源
     auto dirLight = std::make_shared<DirectionalLight>(glm::vec3(10.0f, -4.0f, 1.0f), glm::vec3(1.0f));
@@ -92,7 +93,7 @@ int main()
     */
 
     // 创建 Renderer，传递已初始化的资源
-    Renderer renderer(window, SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager, sceneObjects);
+    Renderer renderer(window, SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager, scene);
     if (!renderer.initialize()) {
         std::cerr << "Failed to initialize Renderer." << std::endl;
         glfwDestroyWindow(window);
@@ -101,14 +102,14 @@ int main()
     }
 
     // 定义游戏逻辑
-    auto gameLogic = [&sceneObjects]() {
+    auto gameLogic = [&scene]() {
         // 更新物体的包围盒
-        for (auto& object : sceneObjects) {
+        for (auto& object : scene.getGameObjects()) {
             object.setPosition(object.getPosition()); // 更新位置和包围盒
         }
 
         // 检测物体之间的碰撞
-        CollisionManager::detectCollisions(sceneObjects);
+        CollisionManager::detectCollisions(scene.getGameObjects());
     };
 
     // 设置游戏逻辑回调

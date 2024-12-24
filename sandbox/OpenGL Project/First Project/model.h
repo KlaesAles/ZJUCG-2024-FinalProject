@@ -35,12 +35,16 @@ public:
     std::string directory;                   // 模型文件所在的目录路径
     bool gammaCorrection;                    // 是否启用伽马校正
     BoundingBox boundingBox;                 // 包围盒
+    std::string path;                // 模型文件路径
 
     // 构造函数，期望传入3D模型文件路径
     Model(const std::string& path, bool gamma = false);
 
+    // 获取模型路径
+    const std::string& getPath() const;
+
     // 绘制模型以及它的所有网格
-    void Draw(GLint shader);
+    void Draw(GLint shader) const;
 
 private:
     // 使用ASSIMP支持的文件格式加载模型，并将生成的网格存储到meshes向量中

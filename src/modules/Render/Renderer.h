@@ -9,7 +9,7 @@
 #include "Camera.h"
 #include "LightManager.h"
 #include "ShadowManager.h"
-#include "GameObject.h"
+#include "Scene.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -27,8 +27,7 @@ class Renderer {
 public:
     // 构造函数
     Renderer(GLFWwindow* window, unsigned int width, unsigned int height, Camera& camera,
-        LightManager& lightManager, ShadowManager& shadowManager,
-        std::vector<GameObject>& sceneObjects);
+        LightManager& lightManager, ShadowManager& shadowManager, Scene& scene);
 
     // 初始化渲染器
     bool initialize();
@@ -56,7 +55,7 @@ private:
     Camera& camera;
     LightManager& lightManager;
     ShadowManager& shadowManager;
-    std::vector<GameObject>& sceneObjects;
+    Scene& scene;
 
     // 着色器
     Shader lightingShader;
@@ -98,6 +97,10 @@ private:
 
     // 更新阴影贴图
     void updateShadowMaps();
+
+    // 保存和加载场景
+    void saveScene(const std::string& filePath);
+    void loadScene(const std::string& filePath);
 
     // 静态回调函数 - 窗口大小变化
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);

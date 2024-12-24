@@ -3,21 +3,18 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glad/glad.h>
-
-#include "model.h"
-#include "shader.h"
+#include "Model.h"
 #include "BoundingBox.h"
 
 class GameObject {
 private:
-    glm::mat4 modelMatrix;    // 模型矩阵，用于物体的变换
-    Model model;              // Model 类的实例，用于管理和渲染模型
-    BoundingBox boundingBox;  // 包围盒，表示物体的边界
+    glm::mat4 modelMatrix;     // 模型矩阵，用于物体的变换
+    Model model;               // 模型数据
+    BoundingBox boundingBox;   // 包围盒
 
-    glm::vec3 position;       // 位置
-    glm::vec3 scale;          // 缩放
-    glm::vec3 rotation;       // 旋转角度（以度为单位）
+    glm::vec3 position;        // 位置
+    glm::vec3 scale;           // 缩放
+    glm::vec3 rotation;        // 旋转角度（以度为单位）
 
     // 更新模型矩阵
     void updateModelMatrix() {
@@ -27,10 +24,10 @@ private:
         modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
-        updateBoundingBox(); // 同步更新包围盒
+        updateBoundingBox();
     }
 
-    // 更新包围盒的位置和大小
+    // 更新包围盒
     void updateBoundingBox() {
         glm::vec3 modelMin = model.boundingBox.min;
         glm::vec3 modelMax = model.boundingBox.max;
@@ -43,27 +40,29 @@ private:
     }
 
 public:
-    // 构造函数：初始化模型矩阵并加载模型
+    // 构造函数
     GameObject(const std::string& modelPath,
-        glm::vec3 position = glm::vec3(0.0f),
-        glm::vec3 scale = glm::vec3(1.0f),
-        glm::vec3 rotation = glm::vec3(0.0f),
+        const glm::vec3& position = glm::vec3(0.0f),
+        const glm::vec3& scale = glm::vec3(1.0f),
+        const glm::vec3& rotation = glm::vec3(0.0f),
         bool gamma = false)
         : model(modelPath, gamma), position(position), scale(scale), rotation(rotation) {
         updateModelMatrix();
     }
 
-    // 绘制方法
-    void draw(GLuint shader) {
-        // 使用传入的着色器程序
-        glUseProgram(shader);
+    // 获取模型
+    const Model& getModel() const {
+        return model;
+    }
 
-        // 将模型矩阵传递给着色器
-        GLuint modelLoc = glGetUniformLocation(shader, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &modelMatrix[0][0]);
+    // 获取模型矩阵
+    const glm::mat4& getModelMatrix() const {
+        return modelMatrix;
+    }
 
-        // 绘制模型
-        model.Draw(shader);
+    // 获取包围盒
+    const BoundingBox& getBoundingBox() const {
+        return boundingBox;
     }
 
     // 设置位置
@@ -84,20 +83,10 @@ public:
         updateModelMatrix();
     }
 
-    // 获取模型矩阵
-    const glm::mat4& getModelMatrix() const {
-        return modelMatrix;
-    }
-
-    // 获取包围盒
-    const BoundingBox& getBoundingBox() const {
-        return boundingBox;
-    }
-
-    // 获取包围盒
-    const glm::vec3& getPosition() const {
-        return position;
-    }
+    // 获取属性
+    const glm::vec3& getPosition() const { return position; }
+    const glm::vec3& getScale() const { return scale; }
+    const glm::vec3& getRotation() const { return rotation; }
 };
 
 #endif // GAME_OBJECT_H

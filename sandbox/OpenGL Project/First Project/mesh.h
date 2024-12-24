@@ -64,7 +64,7 @@ public:
         setupMesh();
     }
 
-    void Draw(GLint shader)
+	void Draw(GLint shader) const
     {
         // 绑定纹理数组到shader
         unsigned int textureUnit = 0;
