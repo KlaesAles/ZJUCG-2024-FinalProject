@@ -1,16 +1,26 @@
-﻿  glad.c
-  imgui.cpp
-  imgui_demo.cpp
-  imgui_draw.cpp
-  imgui_impl_glfw.cpp
-  imgui_impl_opengl3.cpp
-  imgui_stdlib.cpp
-  imgui_tables.cpp
-  imgui_widgets.cpp
-  Mesh.cpp
-  Previous IPDB and IOBJ mismatch, fall back to full compilation.
+﻿  demo.cpp
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\LightManager.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“demo.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Light.h(1,1): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+  (编译源文件“demo.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Mesh.h(105,96): warning C4267: “参数”: 从“size_t”转换到“GLint”，可能丢失数据
+  (编译源文件“demo.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Mesh.h(106,98): warning C4267: “参数”: 从“size_t”转换到“GLint”，可能丢失数据
+  (编译源文件“demo.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Mesh.h(107,94): warning C4267: “参数”: 从“size_t”转换到“GLint”，可能丢失数据
+  (编译源文件“demo.cpp”)
+  
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Mesh.h(108,85): warning C4267: “参数”: 从“size_t”转换到“GLint”，可能丢失数据
+  (编译源文件“demo.cpp”)
+  
 LINK : warning LNK4098: 默认库“MSVCRTD”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   正在生成代码
-  All 1526 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  39 of 5199 functions ( 0.8%) were compiled, the rest were copied from previous compilation.
+    37 functions were new in current compilation
+    127 functions had inline decision re-evaluated but remain unchanged
   已完成代码的生成
   First Project.vcxproj -> E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\x64\Release\First Project.exe

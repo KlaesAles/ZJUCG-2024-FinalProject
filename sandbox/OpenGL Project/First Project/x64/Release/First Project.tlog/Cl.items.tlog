@@ -7,4 +7,7 @@ E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\imgui\i
 E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\imgui\imgui_stdlib.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\imgui_stdlib.obj
 E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\imgui\imgui_tables.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\imgui_tables.obj
 E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\imgui\imgui_widgets.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\imgui_widgets.obj
-E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Mesh.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\Mesh.obj
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\model.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\model.obj
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\demo.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\demo.obj
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\Renderer.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\Renderer.obj
+E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\stb_image.cpp;E:\Ta Study\ZJUCG-2024-FinalProject\sandbox\OpenGL Project\First Project\x64\Release\stb_image.obj
