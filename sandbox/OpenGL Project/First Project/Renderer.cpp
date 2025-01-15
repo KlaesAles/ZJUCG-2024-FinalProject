@@ -3,18 +3,23 @@
 #include <iostream>
 #include <fstream>
 
+char Renderer::saveFileName[128] = "scene"; // 默认保存文件名
+std::vector<std::string> Renderer::availableScenes = {}; // 初始化为空
+int Renderer::selectedSceneIndex = 0; // 默认选中的场景索引
+
 // 构造函数
 Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Camera& cam,
     LightManager& lm, ShadowManager& sm, Scene& sc)
     : window(win), SCR_WIDTH(width), SCR_HEIGHT(height),
     camera(cam), lightManager(lm), shadowManager(sm), scene(sc),
-    lightingShader("./shader/Model Shader.vs", "./shader/Model Shader.fs"),
-    shadowShader("./Shadow/shadow.vs", "./Shadow/shadow.fs"),
+    lightingShader("./shaders/Model Shader.vs", "./shaders/Model Shader.fs"),
+    shadowShader("./shadow/shadow.vs", "./shadow/shadow.fs"),
     deltaTime(0.0f), lastFrame(0.0f),
     mouseCaptured(true), lastX(width / 2.0f), lastY(height / 2.0f),
     firstMouse(true),
     debugLightView(false), debugLightIndex(0),
-    debugMaterialView(false), debugMaterialIndex(0)
+    debugMaterialView(false), debugMaterialIndex(0),
+    postProcessing(width, height)
 {
 }
 
@@ -37,6 +42,41 @@ bool Renderer::initialize()
     std::cout << "Initializing ImGui..." << std::endl;
     // 初始化 ImGui
     initImGui();
+
+    // 初始化后处理
+    if (!postProcessing.initialize()) {
+        std::cerr << "Failed to initialize post-processing!" << std::endl;
+        return false;
+    }
+
+    // 1) 加载Shader
+    Shader GrayShader("./effects/post_process.vs", "./effects/post_process_Grayscale.fs");
+    Shader InvertShader("./effects/post_process.vs", "./effects/post_process_Invert.fs");
+    Shader SepiaShader("./effects/post_process.vs", "./effects/post_process_Sepia.fs");
+    Shader VignetteShader("./effects/post_process.vs", "./effects/post_process_Vignette.fs");
+    Shader RgbShiftShader("./effects/post_process.vs", "./effects/post_process_rgb_shift.fs");
+
+    // 2) 注册Shader到后处理系统
+    // 对于无参数调节的效果，可以直接写 nullptr 或不写配置回调
+    postProcessing.registerEffect("Grayscale", GrayShader, nullptr);
+    postProcessing.registerEffect("Invert", InvertShader, nullptr);
+    postProcessing.registerEffect("Sepia", SepiaShader, nullptr);
+
+    // 对于有默认配置的效果，可传入初始 lambda
+    postProcessing.registerEffect("Vignette", VignetteShader, [](Shader& shader) {
+        shader.setFloat("radius", 0.5f);  // 初始暗角半径
+        shader.setFloat("softness", 0.2f);  // 初始暗角柔和度
+    });
+
+    postProcessing.registerEffect("RGB Shift", RgbShiftShader, [](Shader& shader) {
+        shader.setFloat("strength", 0.01f); // 初始色差强度
+    });
+
+
+
+
+    // 初始化截图/录制管理器
+    captureManager = std::make_unique<CaptureManager>(SCR_WIDTH, SCR_HEIGHT);
 
     // 绑定 Renderer 到窗口的用户指针
     glfwSetWindowUserPointer(window, this);
@@ -63,7 +103,7 @@ void Renderer::initImGui()
         return;
     }
     ImGui::StyleColorsDark();
-    std::cout << "ImGui initialized successfully." << std::endl;
+    //std::cout << "ImGui initialized successfully." << std::endl;
 }
 
 void Renderer::setCallbacks()
@@ -86,7 +126,7 @@ void Renderer::run()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        std::cout << "Frame time: " << deltaTime << " seconds." << std::endl;
+        //std::cout << "Frame time: " << deltaTime << " seconds." << std::endl;
 
         // 处理输入
         processInput();
@@ -116,64 +156,153 @@ void Renderer::renderFrame()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // 绘制控制面板
-    ImGui::Begin("Scene Controls");
-    if (ImGui::Button("Save Scene")) {
-        saveScene("scene.json");
-    }
-    if (ImGui::Button("Load Scene")) {
-        loadScene("scene.json");
+    // Sidebar toggle button
+    ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - (sidebar_open ? sidebar_width : 0) - 30, 30), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(30, 30), ImGuiCond_Always);
+    ImGui::Begin("ToggleSidebar", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration);
+    if (ImGui::ArrowButton("##toggle", sidebar_open ? ImGuiDir_Right : ImGuiDir_Left)) {
+        sidebar_open = !sidebar_open;
     }
     ImGui::End();
 
-    ImGui::Begin("Light Controls");
-    if (lightManager.getLightCount() > 0) {
-        auto spotLightPtr = std::dynamic_pointer_cast<SpotLight>(lightManager.getLight(lightManager.getLightCount() - 1));
-        if (spotLightPtr) {
-            // 强度控制
-            float intensity = spotLightPtr->getIntensity();
-            if (ImGui::SliderFloat("Spotlight Intensity", &intensity, 0.0f, 5.0f)) {
-                spotLightPtr->setIntensity(intensity);
+    // Sidebar window
+    if (sidebar_open) {
+        ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - sidebar_width, 0), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(sidebar_width, SCR_HEIGHT), ImGuiCond_Always);
+        ImGui::Begin("Sidebar", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+
+        // 后处理效果控制
+        ImGui::Text("Post-Processing Effects");
+        auto effectsState = postProcessing.getEffectsState();
+        for (const auto& effect : effectsState) {
+            bool enabled = effect.second;
+            // 1) 开关效果
+            if (ImGui::Checkbox(effect.first.c_str(), &enabled)) {
+                postProcessing.enableEffect(effect.first, enabled);
             }
 
-            // 切光角度控制
-            float cutoffAngle = spotLightPtr->getCutoffAngle();
-            if (ImGui::SliderFloat("Spotlight Cutoff Angle", &cutoffAngle, 1.0f, 45.0f)) {
-                spotLightPtr->setCutoffAngle(cutoffAngle);
+            // 2) 如果该效果启用，则根据名称调节参数
+            if (effect.first == "RGB Shift" && enabled) {
+                static float rgbShiftStrength = 0.01f;
+                if (ImGui::SliderFloat("RGB Shift Strength", &rgbShiftStrength, 0.0f, 0.1f)) {
+                    // 更新回调
+                    postProcessing.setEffectConfig("RGB Shift", [](Shader& shader) {
+                        shader.setFloat("strength", rgbShiftStrength);
+                        });
+                }
             }
+            else if (effect.first == "Vignette" && enabled) {
+                static float vignetteRadius = 0.5f;
+                static float vignetteSoftness = 0.2f;
+                bool changed = false;
+                changed |= ImGui::SliderFloat("Vignette Radius", &vignetteRadius, 0.0f, 1.0f);
+                changed |= ImGui::SliderFloat("Vignette Softness", &vignetteSoftness, 0.0f, 1.0f);
 
-            // 颜色控制
-            glm::vec3 color = spotLightPtr->getColor();
-            float colorArray[3] = { color.r, color.g, color.b };
-            if (ImGui::ColorEdit3("Spotlight Color", colorArray)) {
-                spotLightPtr->setColor(glm::vec3(colorArray[0], colorArray[1], colorArray[2]));
+                if (changed) {
+                    postProcessing.setEffectConfig("Vignette", [=](Shader& shader) {
+                        shader.setFloat("radius", vignetteRadius);
+                        shader.setFloat("softness", vignetteSoftness);
+                        });
+                }
             }
         }
-    }
 
-    ImGui::Checkbox("Debug Light View", &debugLightView);
-    if (debugLightView) {
-        debugMaterialView = false;
-        ImGui::SliderInt("Debug Light Index", &debugLightIndex, 0, static_cast<int>(lightManager.getLightCount()) - 1, "%d");
-    }
 
-    ImGui::Checkbox("Debug Material View", &debugMaterialView);
-    if (debugMaterialView) {
-        debugLightView = false;
-        ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 47, "%d");
-    }
+        ImGui::Separator(); // 分隔符
 
-    ImGui::End();
+        // 保存场景
+        ImGui::Text("Save Scene");
+        ImGui::InputText("File Name", saveFileName, IM_ARRAYSIZE(saveFileName)); // 输入文件名
+        if (ImGui::Button("Save")) {
+            std::string filePath = "scenes/" + std::string(saveFileName) + ".json"; // 保存到 scenes 目录
+            saveScene(filePath);
+            availableScenes = getSceneFiles("scenes"); // 更新可用场景列表
+        }
+        ImGui::Separator();
 
-    // 显示帮助窗口
-    if (!mouseCaptured) {
-        ImGui::Begin("Controls Help");
-        ImGui::Text("Press TAB to toggle mouse capture");
-        ImGui::Text("Current Status: GUI Control Mode");
+        // 加载场景
+        ImGui::Text("Load Scene");
+        if (availableScenes.empty()) {
+            availableScenes = getSceneFiles("scenes"); // 初始化可用场景列表
+        }
+        if (!availableScenes.empty()) {
+            // 显示场景文件的下拉框
+            if (ImGui::BeginCombo("Available Scenes", availableScenes[selectedSceneIndex].c_str())) {
+                for (int i = 0; i < availableScenes.size(); ++i) {
+                    bool isSelected = (selectedSceneIndex == i);
+                    if (ImGui::Selectable(availableScenes[i].c_str(), isSelected)) {
+                        selectedSceneIndex = i; // 更新选择的场景索引
+                    }
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            // 加载选中的场景
+            if (ImGui::Button("Load")) {
+                std::string filePath = "scenes/" + availableScenes[selectedSceneIndex];
+                loadScene(filePath);
+            }
+        }
+        else {
+            ImGui::Text("No scenes available to load.");
+        }
+        ImGui::Separator(); // 分隔符
+
+        ImGui::Text("Light Controls");
+        if (lightManager.getLightCount() > 0) {
+            auto spotLightPtr = std::dynamic_pointer_cast<SpotLight>(lightManager.getLight(lightManager.getLightCount() - 1));
+            if (spotLightPtr) {
+                // 强度控制
+                float intensity = spotLightPtr->getIntensity();
+                if (ImGui::SliderFloat("Spotlight Intensity", &intensity, 0.0f, 5.0f)) {
+                    spotLightPtr->setIntensity(intensity);
+                }
+
+                // 切光角度控制
+                float cutoffAngle = spotLightPtr->getCutoffAngle();
+                if (ImGui::SliderFloat("Spotlight Cutoff Angle", &cutoffAngle, 1.0f, 45.0f)) {
+                    spotLightPtr->setCutoffAngle(cutoffAngle);
+                }
+
+                // 颜色控制
+                glm::vec3 color = spotLightPtr->getColor();
+                float colorArray[3] = { color.r, color.g, color.b };
+                if (ImGui::ColorEdit3("Spotlight Color", colorArray)) {
+                    spotLightPtr->setColor(glm::vec3(colorArray[0], colorArray[1], colorArray[2]));
+                }
+            }
+        }
+
+        ImGui::Separator(); // 分隔符
+
+        ImGui::Checkbox("Debug Light View", &debugLightView);
+        if (debugLightView) {
+            debugMaterialView = false;
+            ImGui::SliderInt("Debug Light Index", &debugLightIndex, 0, static_cast<int>(lightManager.getLightCount()) - 1, "%d");
+        }
+
+        ImGui::Checkbox("Debug Material View", &debugMaterialView);
+        if (debugMaterialView) {
+            debugLightView = false;
+            ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 10, "%d");
+        }
+
+        ImGui::Separator(); // 分隔符
+
+        // 帮助信息
+        if (!mouseCaptured) {
+            ImGui::Text("Controls Help");
+            ImGui::Text("Press TAB to toggle mouse capture");
+            ImGui::Text("Current Status: GUI Control Mode");
+        }
+
         ImGui::End();
     }
 
-    std::cout << "Rendering frame..." << std::endl;
+    //std::cout << "Rendering frame..." << std::endl;
 
     // 清除缓冲区
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -186,7 +315,7 @@ void Renderer::renderFrame()
         if (spotLightPtr) {
             spotLightPtr->setPosition(camera.Position);
             spotLightPtr->setDirection(camera.Front);
-            std::cout << "SpotLight position and direction updated." << std::endl;
+            //std::cout << "SpotLight position and direction updated." << std::endl;
         }
     }
 
@@ -237,16 +366,26 @@ void Renderer::renderFrame()
 
     lightingShader.setInt("lightCount", static_cast<int>(lightManager.getLightCount()));
 
-    // 渲染所有游戏对象
-    scene.draw(lightingShader);
+    if (postProcessing.hasEnabledEffects()) {
+        postProcessing.begin();
+        scene.draw(lightingShader);
+        postProcessing.endAndRender();
+    }
+    else {
+        scene.draw(lightingShader); // 直接渲染到屏幕
+    }
 
-    std::cout << "Rendering ImGui..." << std::endl;
+    //std::cout << "Rendering ImGui..." << std::endl;
 
     // 渲染ImGui
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    std::cout << "Frame rendered." << std::endl;
+    //std::cout << "Frame rendered." << std::endl;
+
+    if (captureManager) {
+        captureManager->recordFrame();
+    }
 }
 
 void Renderer::processInput()
@@ -284,6 +423,38 @@ void Renderer::processInput()
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
             camera.ProcessKeyboard(RIGHT, deltaTime);
     }
+
+    // F 键截图
+    static bool fPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+        if (!fPressed) {
+            fPressed = true;
+            // 将文件保存到当前目录的 Capture 文件夹
+            if (captureManager->captureScreen("./capture")) {
+                std::cout << "Screenshot taken successfully." << std::endl;
+            }
+        }
+    }
+    else {
+        fPressed = false;
+    }
+
+    // R 键启动/停止录屏
+    static bool rPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        if (!rPressed) {
+            rPressed = true;
+            // 启动或停止录屏
+            if (!captureManager->startRecording("./capture", 30)) {
+                captureManager->stopRecording();
+                std::cout << "Recording stopped." << std::endl;
+            }
+        }
+    }
+    else {
+        rPressed = false;
+    }
+
 
     // 如果有游戏逻辑回调，执行它
     if (gameLogicCallback) {
@@ -344,6 +515,16 @@ void Renderer::loadScene(const std::string& filePath) {
     catch (const std::exception& e) {
         std::cerr << "Error loading scene: " << e.what() << std::endl;
     }
+}
+
+std::vector<std::string> Renderer::getSceneFiles(const std::string& directory) {
+    std::vector<std::string> sceneFiles;
+    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            sceneFiles.push_back(entry.path().filename().string());
+        }
+    }
+    return sceneFiles;
 }
 
 void Renderer::cleanup()

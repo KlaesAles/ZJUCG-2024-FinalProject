@@ -10,6 +10,8 @@
 #include "LightManager.h"
 #include "ShadowManager.h"
 #include "Scene.h"
+#include "PostProcessing.h"
+#include "CaptureManager.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -61,6 +63,12 @@ private:
     Shader lightingShader;
     Shader shadowShader;
 
+    // 后处理
+    PostProcessing postProcessing;
+
+    // 添加截图/录制管理器
+    std::unique_ptr<CaptureManager> captureManager;
+
     // 时间管理
     float deltaTime;
     float lastFrame;
@@ -71,11 +79,19 @@ private:
     float lastY;
     bool firstMouse;
 
+    // imgui侧边栏
+    bool sidebar_open = true;
+    float sidebar_width = 400.0f;
+
     // 调试视图
     bool debugLightView;
     int debugLightIndex;
     bool debugMaterialView;
     int debugMaterialIndex;
+
+
+    // 获取场景列表
+    std::vector<std::string> getSceneFiles(const std::string& directory);
 
     // 游戏逻辑回调
     std::function<void()> gameLogicCallback;
@@ -101,6 +117,10 @@ private:
     // 保存和加载场景
     void saveScene(const std::string& filePath);
     void loadScene(const std::string& filePath);
+
+    static char saveFileName[128]; // 默认文件名
+    static std::vector<std::string> availableScenes; // 可用场景文件列表
+    static int selectedSceneIndex; // 当前选中的场景索引
 
     // 静态回调函数 - 窗口大小变化
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);

@@ -1,0 +1,132 @@
+# Blender 3.6.18 MTL File: 'untitled.blend'
+# www.blender.org
+
+newmtl Material_#5511
+Ns 11.455134
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Atlas.jpg
+
+newmtl Material_#5512
+Ns 11.455134
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd props_alpha.png
+map_d props_alpha.png
+
+newmtl Material_#5518
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.513223 0.350716 0.306990
+Ni 1.450000
+illum 1
+map_Kd props_alpha.png
+map_d props_alpha.png
+
+newmtl Plastic_Soft
+Ns 122.500015
+Ka 1.000000 1.000000 1.000000
+Ks 0.743920 0.743920 0.743920
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Atlas.jpg
+
+newmtl alpha
+Ns 502.726349
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 3
+map_Kd props_alpha.png
+map_d props_alpha.png
+
+newmtl alpha_0
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_Kd props_alpha.png
+map_d props_alpha.png
+
+newmtl alpha_glass
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd props_alpha.png
+map_d props_alpha.png
+
+newmtl glass_transp
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.013483 0.030152 0.017032
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 0.666349
+illum 9
+
+newmtl glassmat
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Atlas.jpg
+
+newmtl interiors
+Ns 11.455134
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Interiors.jpg
+map_Ke Interiors.jpg
+
+newmtl metalmat
+Ns 122.500015
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd Atlas.jpg
+
+newmtl normal
+Ns 13.222603
+Ka 1.000000 1.000000 1.000000
+Ks 0.196751 0.196751 0.196751
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Atlas.jpg
+
+newmtl paintmat
+Ns 302.500000
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Atlas.jpg

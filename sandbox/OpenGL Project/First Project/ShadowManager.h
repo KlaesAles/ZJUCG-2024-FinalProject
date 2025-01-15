@@ -146,6 +146,7 @@ public:
 
             if (light->getType() == LightType::Point)
             {
+                /*
                 glUseProgram(shadowShader);
 
                 const auto viewMatrices = static_cast<PointLight *>(light)->getViewMatrices();
@@ -158,6 +159,8 @@ public:
                 }
 
                 glUniformMatrix4fv(glGetUniformLocation(shadowShader, "lightSpaceMatrices"), 6, GL_FALSE, glm::value_ptr(lightSpaceMatrices[0]));
+                */
+                continue;
             }
             else
             {
@@ -208,7 +211,16 @@ public:
         {
             throw std::out_of_range("Invalid light space matrix index");
         }
-        return light->getProjectionMatrix() * light->getViewMatrix();
+
+        // 检查光源类型
+        if (light->getType() == LightType::Point)
+        {
+            return glm::mat4(1.0f);
+        }
+        else
+        {
+            return light->getProjectionMatrix() * light->getViewMatrix();
+        }
     }
 };
 

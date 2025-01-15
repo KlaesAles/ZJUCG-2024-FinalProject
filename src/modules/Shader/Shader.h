@@ -15,6 +15,9 @@ public:
 	// the program ID
 	unsigned int ID;
 
+	// 默认构造函数
+	Shader() : ID(0) {}
+
 	// constructor reads and builds the shader
 	Shader(const char* vertexPath, const char* fragmentPath)
 	{

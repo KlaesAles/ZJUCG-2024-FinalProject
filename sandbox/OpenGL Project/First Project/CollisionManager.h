@@ -20,7 +20,7 @@ public:
         for (size_t i = 0; i < objects.size(); ++i) {
             for (size_t j = i + 1; j < objects.size(); ++j) {
                 if (checkCollision(objects[i].getBoundingBox(), objects[j].getBoundingBox())) {
-                    std::cout << "Collision detected between object " << i << " and object " << j << std::endl;
+                    //std::cout << "Collision detected between object " << i << " and object " << j << std::endl;
                     // 可以在这里添加更复杂的碰撞响应逻辑
                 }
             }
