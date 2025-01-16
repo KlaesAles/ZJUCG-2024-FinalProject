@@ -60,6 +60,9 @@
     <ClCompile Include="CaptureManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Animator.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shader.h">
@@ -132,6 +135,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="CaptureManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneInfo.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

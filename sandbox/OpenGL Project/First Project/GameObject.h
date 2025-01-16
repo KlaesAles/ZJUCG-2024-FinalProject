@@ -5,9 +5,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "Model.h"
 #include "BoundingBox.h"
+#include "Animator.h"
 
 class GameObject {
 private:
+	std::string name;		   // 名称
     glm::mat4 modelMatrix;     // 模型矩阵，用于物体的变换
     Model model;               // 模型数据
     BoundingBox boundingBox;   // 包围盒
@@ -15,6 +17,8 @@ private:
     glm::vec3 position;        // 位置
     glm::vec3 scale;           // 缩放
     glm::vec3 rotation;        // 旋转角度（以度为单位）
+
+    Animator animator;
 
     // 更新模型矩阵
     void updateModelMatrix() {
@@ -41,13 +45,23 @@ private:
 
 public:
     // 构造函数
-    GameObject(const std::string& modelPath,
+    GameObject(const std::string& name,
+        const std::string& modelPath,
         const glm::vec3& position = glm::vec3(0.0f),
         const glm::vec3& scale = glm::vec3(1.0f),
         const glm::vec3& rotation = glm::vec3(0.0f),
         bool gamma = false)
-        : model(modelPath, gamma), position(position), scale(scale), rotation(rotation) {
+        : name(name), model(modelPath, gamma), animator(&model), position(position), scale(scale), rotation(rotation) {
         updateModelMatrix();
+        // 将 Model 中解析出的所有动画添加到 Animator
+        for (const auto& anim : model.animations) {
+            animator.addAnimation(anim);
+        }
+    }
+
+    // 获取名称
+    const std::string& getName() const {
+        return name;
     }
 
     // 获取模型
@@ -82,6 +96,38 @@ public:
         rotation = newRotation;
         updateModelMatrix();
     }
+
+    // 添加动画
+    void addAnimation(const Animation& animation) {
+        animator.addAnimation(animation);
+    }
+
+    // 播放动画
+    void playAnimation(const std::string& name) {
+        animator.playAnimation(name);
+    }
+
+    // 停止动画
+    void stopAnimation() {
+        animator.stopAnimation();
+    }
+
+    // 更新物体逻辑（包括动画）
+    void update(float deltaTime, Shader& shader) {
+
+        animator.update(deltaTime, shader.ID); // 更新动画
+    }
+
+    // 上传骨骼动画相关的 uniform
+    void uploadBoneUniforms(Shader& shader) {
+        bool useBones = (model.numBones > 0);
+        shader.use(); // 激活着色器
+        shader.setInt("useBones", useBones ? 1 : 0);
+        if (useBones) {
+            animator.update(0.0f, shader.ID); // 直接传入 Shader 对象
+        }
+    }
+
 
     // 获取属性
     const glm::vec3& getPosition() const { return position; }

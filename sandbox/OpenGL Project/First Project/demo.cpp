@@ -78,7 +78,21 @@ int main()
     //scene.addGameObject(GameObject("./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
     //scene.addGameObject(GameObject("./resources/objects/Mini Tokyo/Mini Tokyo.obj", glm::vec3(0.0f, -4.0f, -8.0f), glm::vec3(0.1f)));
 
-    scene.addGameObject(GameObject("./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
+    // 创建 character 并使用 shared_ptr
+    auto character = std::make_shared<GameObject>(
+        "character",
+        "./resources/objects/character/robot.fbx",
+        glm::vec3(0.0f),
+        glm::vec3(0.1f)
+    );
+
+    // 输出所有可用的动画名称以供参考
+    for (const auto& anim : character->getModel().animations) {
+        std::cout << "Available animation: " << anim.getName() << std::endl;
+    }
+    scene.addGameObject(character);
+
+    scene.addGameObject(std::make_shared<GameObject>("Plane", "./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
     
     // 添加基础几何体
     const std::vector<std::string> objectPaths = {
@@ -89,9 +103,10 @@ int main()
     };
 
     for (size_t i = 0; i < objectPaths.size(); ++i) {
+        std::string objectName = "Object_" + std::to_string(i);
         glm::vec3 position = glm::vec3(-7.5f + i * 5.0f, 0.0f, 0.0f); // 一字排开
         glm::vec3 scale = glm::vec3(1.5f); // 统一缩放大小
-        GameObject object(objectPaths[i], position, scale);
+        auto object = std::make_shared<GameObject>(objectName, objectPaths[i], position, scale);
         scene.addGameObject(object);
     }
 
@@ -162,6 +177,7 @@ int main()
 
     // 创建 Renderer，传递已初始化的资源
     Renderer renderer(window, SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager, scene);
+    renderer.setCharacter(character);
     if (!renderer.initialize()) {
         std::cerr << "Failed to initialize Renderer." << std::endl;
         glfwDestroyWindow(window);
@@ -173,11 +189,11 @@ int main()
     auto gameLogic = [&scene]() {
         // 更新物体的包围盒
         for (auto& object : scene.getGameObjects()) {
-            object.setPosition(object.getPosition()); // 更新位置和包围盒
+            object->setPosition(object->getPosition()); // 更新位置和包围盒
         }
 
         // 检测物体之间的碰撞
-        CollisionManager::detectCollisions(scene.getGameObjects());
+        //CollisionManager::detectCollisions(scene.getGameObjects());
     };
 
     // 设置游戏逻辑回调

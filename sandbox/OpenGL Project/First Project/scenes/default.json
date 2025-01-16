@@ -1,6 +1,7 @@
 {
     "objects": [
         {
+	    "name": "Plane",
             "modelPath": "./resources/objects/Plane/Plane.obj",
             "position": [
                 0.0,
@@ -19,6 +20,7 @@
             ]
         },
         {
+	    "name": "Cube",
             "modelPath": "./resources/objects/Cube/Cube.obj",
             "position": [
                 -7.5,
@@ -37,6 +39,7 @@
             ]
         },
         {
+	    "name": "Cylinder",
             "modelPath": "./resources/objects/Cylinder/Cylinder.obj",
             "position": [
                 -2.5,
@@ -55,6 +58,7 @@
             ]
         },
         {
+	    "name": "Cone",
             "modelPath": "./resources/objects/Cone/Cone.obj",
             "position": [
                 2.5,
@@ -73,6 +77,7 @@
             ]
         },
         {
+	    "name": "Sphere",
             "modelPath": "./resources/objects/Sphere/Sphere.obj",
             "position": [
                 7.5,

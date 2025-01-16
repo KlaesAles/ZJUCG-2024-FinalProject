@@ -35,7 +35,7 @@ unsigned int TextureFromFile(const char* path, const std::string& directory, boo
         else if (nrComponents == 4)
             format = GL_RGBA;
 
-        // 根据需要进行伽马校正
+        // 伽马校正
         GLenum internalFormat = format;
         if (gamma)
         {
@@ -76,6 +76,7 @@ void Model::Draw(GLint shader) const
 // 加载模型
 void Model::loadModel(const std::string& path)
 {
+    std::cout << "Loading model: " << path << std::endl;
     // 使用ASSIMP读取文件
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
@@ -90,7 +91,64 @@ void Model::loadModel(const std::string& path)
 
     // 递归处理ASSIMP的根节点
     processNode(scene->mRootNode, scene);
+
+    // 解析动画数据
+    if (scene->HasAnimations()) {
+        for (unsigned int animIndex = 0; animIndex < scene->mNumAnimations; ++animIndex) {
+            aiAnimation* aiAnim = scene->mAnimations[animIndex];
+            float duration = static_cast<float>(aiAnim->mDuration);
+            float ticksPerSecond = static_cast<float>((aiAnim->mTicksPerSecond != 0) ? aiAnim->mTicksPerSecond : 25.0f);
+            Animation animation(aiAnim->mName.C_Str(), duration, ticksPerSecond);
+
+            for (unsigned int channelIndex = 0; channelIndex < aiAnim->mNumChannels; ++channelIndex) {
+                aiNodeAnim* channel = aiAnim->mChannels[channelIndex];
+                BoneChannel boneChannel;
+                boneChannel.boneName = channel->mNodeName.C_Str();
+
+                unsigned int numKeys = channel->mNumPositionKeys;
+                for (unsigned int k = 0; k < numKeys; ++k) {
+                    BoneKeyframe key;
+                    key.time = static_cast<float>(channel->mPositionKeys[k].mTime);
+                    key.position = glm::vec3(
+                        channel->mPositionKeys[k].mValue.x,
+                        channel->mPositionKeys[k].mValue.y,
+                        channel->mPositionKeys[k].mValue.z
+                    );
+                    key.rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                    key.scale = glm::vec3(1.0f);
+                    boneChannel.keyframes.push_back(key);
+                }
+
+                unsigned int numRotKeys = channel->mNumRotationKeys;
+                for (unsigned int r = 0; r < numRotKeys && r < boneChannel.keyframes.size(); ++r) {
+                    boneChannel.keyframes[r].rotation = glm::quat(
+                        channel->mRotationKeys[r].mValue.w,
+                        channel->mRotationKeys[r].mValue.x,
+                        channel->mRotationKeys[r].mValue.y,
+                        channel->mRotationKeys[r].mValue.z
+                    );
+                }
+
+                unsigned int numScaleKeys = channel->mNumScalingKeys;
+                for (unsigned int s = 0; s < numScaleKeys && s < boneChannel.keyframes.size(); ++s) {
+                    boneChannel.keyframes[s].scale = glm::vec3(
+                        channel->mScalingKeys[s].mValue.x,
+                        channel->mScalingKeys[s].mValue.y,
+                        channel->mScalingKeys[s].mValue.z
+                    );
+                }
+                animation.addBoneChannel(boneChannel);
+            }
+            // 将解析后的动画存储到 Model 的 animations 容器中
+            animations.push_back(animation);
+        }
+    }
+    // 读取骨骼层次关系
+    readHierarchy(scene->mRootNode, scene, "");
+    printBoneHierarchy();
+    std::cout << "Finished processing nodes." << std::endl;
 }
+
 
 // 递归处理节点
 void Model::processNode(aiNode* node, const aiScene* scene)
@@ -141,10 +199,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         }
 
         // 纹理坐标
-        if (mesh->mTextureCoords[0]) // 网格是否包含纹理坐标
+        if (mesh->mTextureCoords[0])
         {
             glm::vec2 vec;
-            // 一个顶点可以包含最多8种不同的纹理坐标。我们假设不会使用顶点包含多个纹理坐标的模型，因此始终使用第一个集合（0）。
             vec.x = mesh->mTextureCoords[0][i].x;
             vec.y = mesh->mTextureCoords[0][i].y;
             vertex.TexCoords = vec;
@@ -164,6 +221,12 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         else
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
 
+        // 初始化顶点的骨骼数据
+        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+            vertex.boneIDs[j] = 0;
+            vertex.weights[j] = 0.0f;
+        }
+
         vertices.emplace_back(vertex);
 
         // 创建包围盒
@@ -174,10 +237,67 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         points.emplace_back(point);
     }
 
+    // 处理骨骼数据，此时确保所有顶点均已初始化
+    if (mesh->HasBones()) {
+        for (unsigned int b = 0; b < mesh->mNumBones; b++) {
+            aiBone* bone = mesh->mBones[b];
+            int boneIndex = 0;
+
+            if (boneMapping.find(bone->mName.C_Str()) == boneMapping.end()) {
+                boneIndex = numBones++;
+                BoneInfo boneInfo;
+                boneInfo.offsetMatrix = glm::transpose(glm::mat4(
+                    bone->mOffsetMatrix.a1, bone->mOffsetMatrix.a2, bone->mOffsetMatrix.a3, bone->mOffsetMatrix.a4,
+                    bone->mOffsetMatrix.b1, bone->mOffsetMatrix.b2, bone->mOffsetMatrix.b3, bone->mOffsetMatrix.b4,
+                    bone->mOffsetMatrix.c1, bone->mOffsetMatrix.c2, bone->mOffsetMatrix.c3, bone->mOffsetMatrix.c4,
+                    bone->mOffsetMatrix.d1, bone->mOffsetMatrix.d2, bone->mOffsetMatrix.d3, bone->mOffsetMatrix.d4
+                ));
+                boneInfoMap[bone->mName.C_Str()] = boneInfo;
+                boneMapping[bone->mName.C_Str()] = boneIndex;
+            }
+            else {
+                boneIndex = boneMapping[bone->mName.C_Str()];
+            }
+
+            for (unsigned int j = 0; j < bone->mNumWeights; j++) {
+                unsigned int vertexID = bone->mWeights[j].mVertexId;
+                float weight = bone->mWeights[j].mWeight;
+                // 确保vertexID在vertices范围内
+                if (vertexID < vertices.size()) {
+                    addBoneData(vertices[vertexID], boneIndex, weight);
+                }
+                else {
+                    std::cerr << "Warning: vertexID " << vertexID << " out of bounds (size: " << vertices.size() << ")" << std::endl;
+                }
+            }
+        }
+    }
+
     // 初始化或更新包围盒
     for (const auto& point : points) {
         boundingBox.update(point);
     }
+
+    /*
+    // 输出每个顶点的骨骼绑定数据
+    for (unsigned int i = 0; i < vertices.size(); ++i) {
+        std::cout << "Vertex " << i << ":\n";
+        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+            if (vertices[i].weights[j] > 0.0f) {
+                std::string boneName = "Unknown";
+                for (const auto& [name, index] : boneMapping) {
+                    if (index == vertices[i].boneIDs[j]) {
+                        boneName = name;
+                        break;
+                    }
+                }
+                std::cout << "  Bone " << j << ": " << boneName
+                    << " (ID: " << vertices[i].boneIDs[j]
+                    << ", Weight: " << vertices[i].weights[j] << ")\n";
+            }
+        }
+    }
+    */
 
     // 遍历网格的每个面（一个面是一个三角形），并获取对应的顶点索引
     for (unsigned int i = 0; i < mesh->mNumFaces; i++)
@@ -191,19 +311,15 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     // 处理材质
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-    // 1. 处理diffuse贴图
     std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
-    // 2. 处理specular贴图
     std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
-    // 3. 处理normal贴图
     std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 
-    // 4. 处理height贴图
     std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
@@ -243,3 +359,51 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
     }
     return textures;
 }
+
+void Model::addBoneData(Vertex& vertex, int boneID, float weight) {
+    for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
+        if (vertex.weights[i] == 0.0f) {
+            vertex.boneIDs[i] = boneID;
+            vertex.weights[i] = weight;
+            return;
+        }
+    }
+    std::cerr << "Warning: vertex bone influences exceeded MAX_BONE_INFLUENCE." << std::endl;
+}
+
+void Model::readHierarchy(aiNode* node, const aiScene* scene, const std::string& parentName) {
+    std::string nodeName(node->mName.C_Str());
+
+    // 过滤辅助节点 (如 "_$AssimpFbx$_PreRotation" 等)
+    if (nodeName.find("_$AssimpFbx$_") != std::string::npos) {
+        for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+            readHierarchy(node->mChildren[i], scene, parentName);
+        }
+        return;
+    }
+
+    // 如果节点已经存在于 boneParentMap，则跳过
+    if (boneParentMap.find(nodeName) != boneParentMap.end()) {
+        return;
+    }
+
+    // 如果当前节点是骨骼，记录父子关系
+    if (boneMapping.find(nodeName) != boneMapping.end()) {
+        boneParentMap[nodeName] = parentName;
+    }
+
+    // 遍历子节点并递归调用
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        readHierarchy(node->mChildren[i], scene, nodeName);
+    }
+}
+
+// 输出骨骼父子关系
+void Model::printBoneHierarchy() const {
+    for (const auto& [boneName, parentName] : boneParentMap) {
+        std::cout << "Bone: " << boneName
+            << " Parent: " << (parentName.empty() ? "None (Root)" : parentName)
+            << std::endl;
+    }
+}
+

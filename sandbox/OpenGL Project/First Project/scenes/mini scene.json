@@ -1,6 +1,7 @@
 {
     "objects": [
         {
+	    "name": "Mini Tokyo",
             "modelPath": "./resources/objects/Mini Tokyo/Mini Tokyo.obj",
             "position": [
                 -27.0,
@@ -19,6 +20,7 @@
             ]
         },
         {
+	    "name": "nanosuit",
             "modelPath": "./resources/objects/nanosuit/nanosuit.obj",
             "position": [
                 -15.0,

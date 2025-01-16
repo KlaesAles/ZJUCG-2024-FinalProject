@@ -4,6 +4,7 @@
 #include "BoundingBox.h"
 #include "GameObject.h"
 #include <vector>
+#include <memory>
 #include <iostream>
 
 class CollisionManager {
@@ -16,12 +17,16 @@ public:
     }
 
     // 检测场景中所有物体之间的碰撞
-    static void detectCollisions(const std::vector<GameObject>& objects) {
+    static void detectCollisions(const std::vector<std::shared_ptr<GameObject>>& objects) {
         for (size_t i = 0; i < objects.size(); ++i) {
             for (size_t j = i + 1; j < objects.size(); ++j) {
-                if (checkCollision(objects[i].getBoundingBox(), objects[j].getBoundingBox())) {
-                    //std::cout << "Collision detected between object " << i << " and object " << j << std::endl;
+                if (checkCollision(objects[i]->getBoundingBox(), objects[j]->getBoundingBox())) {
+                    // Collision detected between objects[i] and objects[j]
                     // 可以在这里添加更复杂的碰撞响应逻辑
+                    // 示例输出：
+                    std::cout << "Collision detected between \""
+                        << objects[i]->getName() << "\" and \""
+                        << objects[j]->getName() << "\"" << std::endl;
                 }
             }
         }

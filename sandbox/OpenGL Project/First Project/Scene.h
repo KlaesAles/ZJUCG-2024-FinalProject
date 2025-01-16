@@ -3,32 +3,41 @@
 
 #include <vector>
 #include <string>
+#include <memory> // 引入智能指针
 #include <nlohmann/json.hpp>
 #include "GameObject.h"
 
 class Scene {
 private:
-    std::vector<GameObject> gameObjects; // 场景中的所有物体
+    std::vector<std::shared_ptr<GameObject>> gameObjects; // 使用 shared_ptr 存储 GameObject
 
 public:
     // 构造函数
     Scene() = default;
 
     // 添加 GameObject
-    void addGameObject(const GameObject& obj) {
+    void addGameObject(const std::shared_ptr<GameObject>& obj) {
         gameObjects.push_back(obj);
     }
 
     // 获取所有 GameObject
-    std::vector<GameObject>& getGameObjects() {
+    std::vector<std::shared_ptr<GameObject>>& getGameObjects() {
         return gameObjects;
+    }
+
+    // 更新场景（包括动画）
+    void update(float deltaTime, Shader& shader) {
+        for (auto& obj : gameObjects) {
+            obj->update(deltaTime, shader);
+        }
     }
 
     // 渲染场景
     void draw(Shader& shader) {
-        for (const auto& obj : gameObjects) {
-            shader.setMat4("model", obj.getModelMatrix());
-            obj.getModel().Draw(shader.ID);
+        for (auto& obj : gameObjects) {
+            shader.setMat4("model", obj->getModelMatrix());
+            obj->uploadBoneUniforms(shader);
+            obj->getModel().Draw(shader.ID);
         }
     }
 
@@ -36,8 +45,8 @@ public:
     void drawShadowMaps(GLuint shadowShader) {
         for (const auto& obj : gameObjects) {
             GLint modelLoc = glGetUniformLocation(shadowShader, "model");
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &obj.getModelMatrix()[0][0]);
-            obj.getModel().Draw(shadowShader);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &obj->getModelMatrix()[0][0]);
+            obj->getModel().Draw(shadowShader);
         }
     }
 
@@ -46,10 +55,11 @@ public:
         nlohmann::json sceneJson;
         for (const auto& obj : gameObjects) {
             sceneJson["objects"].push_back({
-                {"modelPath", obj.getModel().getPath()},
-                {"position", {obj.getPosition().x, obj.getPosition().y, obj.getPosition().z}},
-                {"scale", {obj.getScale().x, obj.getScale().y, obj.getScale().z}},
-                {"rotation", {obj.getRotation().x, obj.getRotation().y, obj.getRotation().z}}
+                {"name", obj->getName()}, // 新增 name 字段
+                {"modelPath", obj->getModel().getPath()},
+                {"position", {obj->getPosition().x, obj->getPosition().y, obj->getPosition().z}},
+                {"scale", {obj->getScale().x, obj->getScale().y, obj->getScale().z}},
+                {"rotation", {obj->getRotation().x, obj->getRotation().y, obj->getRotation().z}}
                 });
         }
         return sceneJson;
@@ -59,8 +69,9 @@ public:
     void deserialize(const nlohmann::json& sceneJson) {
         gameObjects.clear();
         for (const auto& objJson : sceneJson["objects"]) {
-            GameObject obj(
-                objJson["modelPath"],
+            auto obj = std::make_shared<GameObject>(
+                objJson["name"].get<std::string>(), // 传递 name 参数
+                objJson["modelPath"].get<std::string>(),
                 glm::vec3(objJson["position"][0], objJson["position"][1], objJson["position"][2]),
                 glm::vec3(objJson["scale"][0], objJson["scale"][1], objJson["scale"][2]),
                 glm::vec3(objJson["rotation"][0], objJson["rotation"][1], objJson["rotation"][2])

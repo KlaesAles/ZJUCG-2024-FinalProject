@@ -35,10 +35,10 @@ public:
     // 网格数据
     vector<Vertex> vertices;             // 顶点数组
     vector<unsigned int> indices;        // 索引数组
-    vector<Texture> diffuseTextures;     // 按类型分组的diffuse纹理
-    vector<Texture> specularTextures;    // 按类型分组的specular纹理
-    vector<Texture> normalTextures;      // 按类型分组的normal纹理
-    vector<Texture> heightTextures;      // 按类型分组的height纹理
+    vector<Texture> diffuseTextures;     // diffuse纹理
+    vector<Texture> specularTextures;    // specular纹理
+    vector<Texture> normalTextures;      // normal纹理
+    vector<Texture> heightTextures;      // height纹理
 
     unsigned int VAO;
 

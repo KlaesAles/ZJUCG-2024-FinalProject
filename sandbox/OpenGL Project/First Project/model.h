@@ -13,6 +13,8 @@
 #include "Mesh.h"
 #include "Shader.h"
 #include "BoundingBox.h"
+#include "Animation.h"
+#include "BoneInfo.h"
 
 #include "stb_image.h"
 
@@ -37,7 +39,13 @@ public:
     BoundingBox boundingBox;                 // 包围盒
     std::string path;                // 模型文件路径
 
-    // 构造函数，期望传入3D模型文件路径
+    std::map<std::string, int> boneMapping; // 骨骼名称到索引的映射
+    std::map<std::string, BoneInfo> boneInfoMap; // 骨骼偏移矩阵
+    int numBones = 0; // 骨骼总数
+    std::map<std::string, std::string> boneParentMap;  // 骨骼父子关系映射
+
+    std::vector<Animation> animations;  // 存储解析后的动画列表
+
     Model(const std::string& path, bool gamma = false);
 
     // 获取模型路径
@@ -59,6 +67,11 @@ private:
     // 检查给定类型的所有材质纹理，并在未加载时加载纹理。
     // 返回包含所需信息的Texture结构体
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName);
+
+    // 读取骨骼层次关系
+    void readHierarchy(aiNode* node, const aiScene* scene, const std::string& parentName);
+    void addBoneData(Vertex& vertex, int boneID, float weight);
+    void printBoneHierarchy() const;
 };
 
 #endif // MODEL_H

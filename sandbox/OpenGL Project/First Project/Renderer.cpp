@@ -72,9 +72,6 @@ bool Renderer::initialize()
         shader.setFloat("strength", 0.01f); // 初始色差强度
     });
 
-
-
-
     // 初始化截图/录制管理器
     captureManager = std::make_unique<CaptureManager>(SCR_WIDTH, SCR_HEIGHT);
 
@@ -133,6 +130,9 @@ void Renderer::run()
 
         // 更新阴影贴图
         updateShadowMaps();
+
+        // 更新场景
+        scene.update(deltaTime, lightingShader);
 
         // 渲染
         renderFrame();
@@ -439,6 +439,70 @@ void Renderer::processInput()
         fPressed = false;
     }
 
+    // 动画控制
+    static bool gPressed = false;
+    static bool hPressed = false;
+    static bool jPressed = false;
+
+    if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
+        if (!gPressed) {  // G 键触发 Running 动画
+            gPressed = true;
+            if (Character) {
+                Character->playAnimation("Running");
+                std::cout << "Playing animation: Running" << std::endl;
+            }
+            else {
+                std::cerr << "Character not set in Renderer." << std::endl;
+            }
+        }
+    }
+    else {
+        gPressed = false;  // 松开 G 键
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
+        if (!hPressed) {  // H 键触发 Idle 动画
+            hPressed = true;
+            if (Character) {
+                Character->playAnimation("Idle");
+                std::cout << "Playing animation: Idle" << std::endl;
+            }
+            else {
+                std::cerr << "Character not set in Renderer." << std::endl;
+            }
+        }
+    }
+    else {
+        hPressed = false;  // 松开 H 键
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
+        if (!jPressed) {  // J 键触发 Jump 动画
+            jPressed = true;
+            if (Character) {
+                Character->playAnimation("Jump");
+                std::cout << "Playing animation: Jump" << std::endl;
+            }
+            else {
+                std::cerr << "Character not set in Renderer." << std::endl;
+            }
+        }
+    }
+    else {
+        jPressed = false;  // 松开 J 键
+    }
+
+    // 动画停止逻辑（可选：根据松开某些键或其他条件停止动画）
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+        if (Character) {
+            Character->stopAnimation();
+            std::cout << "Stopped animation." << std::endl;
+        }
+        else {
+            std::cerr << "Character not set in Renderer." << std::endl;
+        }
+    }
+
     // R 键启动/停止录屏
     static bool rPressed = false;
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
@@ -473,7 +537,7 @@ void Renderer::updateShadowMaps()
         lights.push_back(lightManager.getLight(i).get());
     }
 
-    // 设置阴影贴图分辨率（可根据需要调整）
+    // 设置阴影贴图分辨率
     shadowManager.updateShadowResolution(4096);
 
     // 生成阴影贴图

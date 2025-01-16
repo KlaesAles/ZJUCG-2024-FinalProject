@@ -45,6 +45,11 @@ public:
         gameLogicCallback = callback;
     }
 
+    // 设置 character
+    void setCharacter(const std::shared_ptr<GameObject>& character) {
+        Character = character;
+    }
+
 private:
     // 窗口尺寸
     unsigned int SCR_WIDTH;
@@ -62,6 +67,9 @@ private:
     // 着色器
     Shader lightingShader;
     Shader shadowShader;
+
+    // 持有 character 的智能指针
+    std::shared_ptr<GameObject> Character; 
 
     // 后处理
     PostProcessing postProcessing;
