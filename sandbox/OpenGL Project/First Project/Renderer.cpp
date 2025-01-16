@@ -14,6 +14,7 @@ Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Cam
     camera(cam), lightManager(lm), shadowManager(sm), scene(sc),
     lightingShader("./shaders/Model Shader.vs", "./shaders/Model Shader.fs"),
     shadowShader("./shadow/shadow.vs", "./shadow/shadow.fs"),
+    pointshadowShader("./shadow/shadow_point.vs", "./shadow/shadow_point.fs", "./shadow/shadow_point.gs"),
     deltaTime(0.0f), lastFrame(0.0f),
     mouseCaptured(true), lastX(width / 2.0f), lastY(height / 2.0f),
     firstMouse(true),
@@ -277,7 +278,7 @@ void Renderer::renderFrame()
         }
 
         ImGui::Separator(); // 分隔符
-
+        
         ImGui::Checkbox("Debug Light View", &debugLightView);
         if (debugLightView) {
             debugMaterialView = false;
@@ -289,6 +290,76 @@ void Renderer::renderFrame()
             debugLightView = false;
             ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 10, "%d");
         }
+
+        ImGui::Separator(); // 分隔符
+
+
+        // 材质参数编辑
+        ImGui::Text("Material Parameters");
+
+        // 选择要编辑的 GameObject 和 Mesh
+        static int selectedObject = 0;
+        static int selectedMesh = 0;
+        auto& gameObjects = scene.getGameObjects();
+        if (!gameObjects.empty()) {
+            ImGui::BeginChild("GameObjects", ImVec2(0, 200), true);
+            for (int objIndex = 0; objIndex < gameObjects.size(); ++objIndex) {
+                const auto& obj = gameObjects[objIndex];
+                bool nodeOpen = false;
+                std::string nodeLabel = obj->getName() + "###GameObject_" + std::to_string(objIndex);
+                if (ImGui::TreeNodeEx((void*)(intptr_t)objIndex, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | (selectedObject == objIndex ? ImGuiTreeNodeFlags_Selected : 0), nodeLabel.c_str())) {
+                    // 展示Mesh列表
+                    const auto& model = obj->getModel();
+                    for (int meshIndex = 0; meshIndex < model.meshes.size(); ++meshIndex) {
+                        std::string meshLabel = "Mesh " + std::to_string(meshIndex) + "###Mesh_" + std::to_string(objIndex) + "_" + std::to_string(meshIndex);
+                        if (ImGui::Selectable(meshLabel.c_str(), selectedObject == objIndex && selectedMesh == meshIndex)) {
+                            selectedObject = objIndex;
+                            selectedMesh = meshIndex;
+                        }
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::EndChild();
+
+            // 获取选定的材质
+            const auto& selectedObj = gameObjects[selectedObject];
+            if (selectedMesh < selectedObj->getModel().meshes.size()) {
+                PBRMaterial& material = selectedObj->getPBRMaterial(selectedMesh);
+
+                ImGui::Separator();
+                ImGui::Text("Editing: %s - Mesh %d", selectedObj->getName().c_str(), selectedMesh);
+
+                // 编辑 Albedo 颜色
+                float albedo[3] = { material.albedo.r, material.albedo.g, material.albedo.b };
+                if (ImGui::ColorEdit3("Albedo", albedo)) {
+                    material.albedo = glm::vec3(albedo[0], albedo[1], albedo[2]);
+                }
+
+                // 编辑金属度
+                if (ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f)) {
+                    // 更新逻辑
+                }
+
+                // 编辑粗糙度
+                if (ImGui::SliderFloat("Roughness", &material.roughness, 0.05f, 1.0f)) {
+                    // 更新逻辑
+                }
+
+                // 编辑环境光遮蔽
+                if (ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f)) {
+                    // 更新逻辑
+                }
+
+                // 编辑是否使用纹理
+                ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
+                ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
+                ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
+                ImGui::Checkbox("Use Normal Map", &material.useNormalMap);
+                ImGui::Checkbox("Use AO Map", &material.useAOMap);
+            }
+        }
+
 
         ImGui::Separator(); // 分隔符
 
@@ -356,12 +427,22 @@ void Renderer::renderFrame()
         lightingShader.setMat4(matrixName, lightSpaceMatrices[i]);
     }
 
-    // 绑定所有阴影贴图
-    for (size_t i = 0; i < lightManager.getLightCount(); ++i) {
-        glActiveTexture(GL_TEXTURE2 + static_cast<GLenum>(i)); // 从GL_TEXTURE2开始
-        glBindTexture(GL_TEXTURE_2D, shadowManager.getShadowTexture(i));
-        std::string shadowMapName = "shadowMaps[" + std::to_string(i) + "]";
-        lightingShader.setInt(shadowMapName, 2 + static_cast<int>(i));
+    // 绑定阴影贴图
+    for (size_t i = 0; i < lightManager.getLightCount(); ++i)
+    {
+        const auto& light = lightManager.getLight(i);
+        if (light->getType() == LightType::Point)
+        {
+            glActiveTexture(GL_TEXTURE0 + i); // 确保纹理单元不冲突
+            glBindTexture(GL_TEXTURE_CUBE_MAP, shadowManager.getShadowTexture(i));
+            lightingShader.setInt("shadowCubeMaps[" + std::to_string(i) + "]", i);
+        }
+        else // DirectionalLight or SpotLight
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, shadowManager.getShadowTexture(i));
+            lightingShader.setInt("shadowMaps[" + std::to_string(i) + "]", i);
+        }
     }
 
     lightingShader.setInt("lightCount", static_cast<int>(lightManager.getLightCount()));
@@ -492,8 +573,8 @@ void Renderer::processInput()
         jPressed = false;  // 松开 J 键
     }
 
-    // 动画停止逻辑（可选：根据松开某些键或其他条件停止动画）
-    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+    // 动画停止逻辑
+    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
         if (Character) {
             Character->stopAnimation();
             std::cout << "Stopped animation." << std::endl;
@@ -541,7 +622,7 @@ void Renderer::updateShadowMaps()
     shadowManager.updateShadowResolution(4096);
 
     // 生成阴影贴图
-    shadowManager.generateShadowMaps(lights, scene, shadowShader.ID);
+    shadowManager.generateShadowMaps(lights, scene, shadowShader, pointshadowShader);
 }
 
 void Renderer::saveScene(const std::string& filePath) {

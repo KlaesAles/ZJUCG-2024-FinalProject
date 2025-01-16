@@ -176,6 +176,7 @@
     <ClInclude Include="LightManager.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="PBRMaterial.h" />
     <ClInclude Include="PostProcessing.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Scene.h" />

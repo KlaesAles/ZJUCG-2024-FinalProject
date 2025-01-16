@@ -59,6 +59,12 @@ public:
         }
     }
 
+    // 添加获取和设置 PBR 材质的函数
+    PBRMaterial& getPBRMaterial(unsigned int meshIndex = 0) {
+        // 假设每个 GameObject 只有一个 Mesh，如果有多个 Mesh，需要根据 meshIndex 获取
+        return model.meshes[meshIndex].material;
+    }
+
     // 获取名称
     const std::string& getName() const {
         return name;

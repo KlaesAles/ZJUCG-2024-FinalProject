@@ -147,6 +147,10 @@ public:
 
     glm::vec3 getColor() const override { return color; }
 
+    float getFarPlane() const { return farPlane; }
+
+    float getNearPlane() const { return nearPlane; }
+
     float getIntensity() const override { return intensity; }
 
     void setPosition(const glm::vec3& newPosition) override {

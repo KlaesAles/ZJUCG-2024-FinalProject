@@ -52,7 +52,7 @@ public:
     const std::string& getPath() const;
 
     // 绘制模型以及它的所有网格
-    void Draw(GLint shader) const;
+    void Draw(Shader& shader) const;
 
 private:
     // 使用ASSIMP支持的文件格式加载模型，并将生成的网格存储到meshes向量中

@@ -37,18 +37,20 @@ public:
         for (auto& obj : gameObjects) {
             shader.setMat4("model", obj->getModelMatrix());
             obj->uploadBoneUniforms(shader);
-            obj->getModel().Draw(shader.ID);
+            obj->getModel().Draw(shader);
         }
     }
 
     // 渲染阴影贴图
-    void drawShadowMaps(GLuint shadowShader) {
-        for (const auto& obj : gameObjects) {
-            GLint modelLoc = glGetUniformLocation(shadowShader, "model");
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &obj->getModelMatrix()[0][0]);
-            obj->getModel().Draw(shadowShader);
+    void drawShadowMaps(Shader& shadowShader)
+    {
+        for (const auto& obj : gameObjects)
+        {
+            shadowShader.setMat4("model", obj->getModelMatrix());
+            obj->getModel().Draw(shadowShader); // 注意传递 `Shader::ID`
         }
     }
+
 
     // 序列化场景到 JSON
     nlohmann::json serialize() {

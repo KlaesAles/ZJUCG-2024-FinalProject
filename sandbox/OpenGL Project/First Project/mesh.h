@@ -5,7 +5,9 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <shader.h>
+#include "PBRMaterial.h"
 
 #include <string>
 #include <vector>
@@ -30,87 +32,84 @@ struct Texture {
     string path;        // 纹理路径
 };
 
+enum TextureType {
+    TEXTURE_ALBEDO,
+    TEXTURE_METALLIC,
+    TEXTURE_ROUGHNESS,
+    TEXTURE_NORMAL,
+    TEXTURE_AO,
+};
+
 class Mesh {
 public:
     // 网格数据
     vector<Vertex> vertices;             // 顶点数组
     vector<unsigned int> indices;        // 索引数组
-    vector<Texture> diffuseTextures;     // diffuse纹理
-    vector<Texture> specularTextures;    // specular纹理
-    vector<Texture> normalTextures;      // normal纹理
-    vector<Texture> heightTextures;      // height纹理
+    std::vector<Texture> textures;       // 所有纹理
 
     unsigned int VAO;
+
+    PBRMaterial material; // 新增 PBR 材质
 
     // 构造函数
     Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures)
     {
         this->vertices = vertices;
         this->indices = indices;
+        this->textures = textures;
 
-        // 根据类型分组纹理
-        for (const auto& tex : textures) {
-            if (tex.type == "texture_diffuse")
-                diffuseTextures.push_back(tex);
-            else if (tex.type == "texture_specular")
-                specularTextures.push_back(tex);
-            else if (tex.type == "texture_normal")
-                normalTextures.push_back(tex);
-            else if (tex.type == "texture_height")
-                heightTextures.push_back(tex);
-        }
+        // 设置 PBR 材质参数
+        setupPBRMaterial();
 
         // 设置顶点缓冲区及其属性指针
         setupMesh();
     }
 
-	void Draw(GLint shader) const
+	void Draw(Shader& shader) const
     {
-        // 绑定纹理数组到shader
+        // 设置基本材质属性
+        shader.setVec3("material.albedo", material.albedo);
+        shader.setFloat("material.metallic", material.metallic);
+        shader.setFloat("material.roughness", material.roughness);
+        shader.setFloat("material.ao", material.ao);
+
+        // 绑定 PBR 纹理
         unsigned int textureUnit = 0;
 
-        // 设置diffuse纹理
-        for (unsigned int i = 0; i < diffuseTextures.size(); i++) {
-            glActiveTexture(GL_TEXTURE0 + textureUnit); // 激活相应的纹理单元
-            glUniform1i(glGetUniformLocation(shader, ("material.diffuse[" + to_string(i) + "]").c_str()), textureUnit);
-            glBindTexture(GL_TEXTURE_2D, diffuseTextures[i].id); // 绑定纹理
-            textureUnit++;
-        }
-
-        // 设置specular纹理
-        for (unsigned int i = 0; i < specularTextures.size(); i++) {
+        if (material.useAlbedoMap && material.albedoMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
-            glUniform1i(glGetUniformLocation(shader, ("material.specular[" + to_string(i) + "]").c_str()), textureUnit);
-            glBindTexture(GL_TEXTURE_2D, specularTextures[i].id);
-            textureUnit++;
+            glBindTexture(GL_TEXTURE_2D, material.albedoMap);
+            shader.setInt("material.albedoMap", textureUnit++);
         }
 
-        // 设置normal纹理
-        for (unsigned int i = 0; i < normalTextures.size(); i++) {
+        if (material.useMetallicMap && material.metallicMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
-            glUniform1i(glGetUniformLocation(shader, ("material.normal[" + to_string(i) + "]").c_str()), textureUnit);
-            glBindTexture(GL_TEXTURE_2D, normalTextures[i].id);
-            textureUnit++;
+            glBindTexture(GL_TEXTURE_2D, material.metallicMap);
+            shader.setInt("material.metallicMap", textureUnit++);
         }
 
-        // 设置height纹理
-        for (unsigned int i = 0; i < heightTextures.size(); i++) {
+        if (material.useRoughnessMap && material.roughnessMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
-            glUniform1i(glGetUniformLocation(shader, ("height[" + to_string(i) + "]").c_str()), textureUnit);
-            glBindTexture(GL_TEXTURE_2D, heightTextures[i].id);
-            textureUnit++;
+            glBindTexture(GL_TEXTURE_2D, material.roughnessMap);
+            shader.setInt("material.roughnessMap", textureUnit++);
         }
 
-        // 设置纹理数量到shader
-        glUniform1i(glGetUniformLocation(shader, "material.diffuseCount"), diffuseTextures.size());
-        glUniform1i(glGetUniformLocation(shader, "material.specularCount"), specularTextures.size());
-        glUniform1i(glGetUniformLocation(shader, "material.normalCount"), normalTextures.size());
-        glUniform1i(glGetUniformLocation(shader, "heightCount"), heightTextures.size());
+        if (material.useNormalMap && material.normalMap != 0) {
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glBindTexture(GL_TEXTURE_2D, material.normalMap);
+            shader.setInt("material.normalMap", textureUnit++);
+        }
+
+        if (material.useAOMap && material.aoMap != 0) {
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glBindTexture(GL_TEXTURE_2D, material.aoMap);
+            shader.setInt("material.aoMap", textureUnit++);
+        }
 
         // 绘制网格
-        glBindVertexArray(VAO); // 绑定VAO
-        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0); // 绘制
-        glBindVertexArray(0); // 解绑VAO
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 
         // 重置激活的纹理单元
         glActiveTexture(GL_TEXTURE0);
@@ -161,6 +160,48 @@ private:
         glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, weights));
 
         glBindVertexArray(0); // 解绑VAO
+    }
+
+    // 设置 PBR 材质参数
+    void setupPBRMaterial()
+    {
+        // 遍历所有纹理，分配给 PBR 材质
+        for (const auto& tex : textures) {
+            if (tex.type == "texture_albedo") {
+                material.albedoMap = tex.id;
+                material.useAlbedoMap = true;
+            }
+            else if (tex.type == "texture_metallic") {
+                material.metallicMap = tex.id;
+                material.useMetallicMap = true;
+            }
+            else if (tex.type == "texture_roughness") {
+                material.roughnessMap = tex.id;
+                material.useRoughnessMap = true;
+            }
+            else if (tex.type == "texture_normal") {
+                material.normalMap = tex.id;
+                material.useNormalMap = true;
+            }
+            else if (tex.type == "texture_ao") {
+                material.aoMap = tex.id;
+                material.useAOMap = true;
+            }
+        }
+
+        // 如果没有使用纹理，则使用默认参数
+        if (!material.useAlbedoMap) {
+            material.albedo = glm::vec3(1.0f); // 默认白色
+        }
+        if (!material.useMetallicMap) {
+            material.metallic = 0.0f;
+        }
+        if (!material.useRoughnessMap) {
+            material.roughness = 0.5f;
+        }
+        if (!material.useAOMap) {
+            material.ao = 1.0f;
+        }
     }
 };
 

@@ -67,7 +67,7 @@ unsigned int TextureFromFile(const char* path, const std::string& directory, boo
 }
 
 // 绘制模型以及它的所有网格
-void Model::Draw(GLint shader) const
+void Model::Draw(Shader& shader) const
 {
     for (unsigned int i = 0; i < meshes.size(); i++)
         meshes[i].Draw(shader);
@@ -311,17 +311,20 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     // 处理材质
     aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-    std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
-    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+    std::vector<Texture> albedoMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_albedo");
+    textures.insert(textures.end(), albedoMaps.begin(), albedoMaps.end());
 
-    std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
-    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+    std::vector<Texture> metallicMaps = loadMaterialTextures(material, aiTextureType_METALNESS, "texture_metallic");
+    textures.insert(textures.end(), metallicMaps.begin(), metallicMaps.end());
 
-    std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+    std::vector<Texture> roughnessMaps = loadMaterialTextures(material, aiTextureType_SHININESS, "texture_roughness");
+    textures.insert(textures.end(), roughnessMaps.begin(), roughnessMaps.end());
+
+    std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 
-    std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+    std::vector<Texture> aoMaps = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, "texture_ao");
+    textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
 
     // 返回一个由提取的网格数据创建的Mesh对象
     return Mesh(vertices, indices, textures);
@@ -357,6 +360,23 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
             textures_loaded.emplace_back(texture);  // 将其存储为整个模型已加载的纹理，以确保不会重复加载相同纹理。
         }
     }
+
+    // 如果是传统的Specular贴图，尝试映射到Metallic/Roughness
+    if (type == aiTextureType_SPECULAR) {
+        // 假设Specular贴图代表金属度
+        // 你可以根据实际情况调整
+        for (auto& tex : textures) {
+            tex.type = "texture_metallic";
+        }
+    }
+
+    // 如果是传统的Glossiness贴图，映射到Roughness
+    if (type == aiTextureType_SHININESS) {
+        for (auto& tex : textures) {
+            tex.type = "texture_roughness";
+        }
+    }
+
     return textures;
 }
 

@@ -67,6 +67,7 @@ private:
     // 着色器
     Shader lightingShader;
     Shader shadowShader;
+    Shader pointshadowShader;
 
     // 持有 character 的智能指针
     std::shared_ptr<GameObject> Character; 

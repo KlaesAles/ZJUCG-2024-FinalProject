@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <stdexcept>
 #include "Light.h"
 #include "shader.h"
 
@@ -38,21 +39,23 @@ public:
     void addLight(std::shared_ptr<Light> light) {
         if (lights.size() < maxLights) {
             lights.push_back(light);
-        } else {
+        }
+        else {
             throw std::runtime_error("Maximum number of lights exceeded!");
         }
     }
 
     // 移除光源
     void removeLight(int index) {
-        if (index >= 0 && index < lights.size()) {
+        if (index >= 0 && index < static_cast<int>(lights.size())) {
             lights.erase(lights.begin() + index);
-        } else {
+        }
+        else {
             throw std::runtime_error("Invalid light index!");
         }
     }
 
-	// 获取光源数量
+    // 获取光源数量
     size_t getLightCount() const {
         return lights.size();
     }
@@ -80,43 +83,43 @@ public:
         std::vector<glm::vec4> colors(maxLights, glm::vec4(0.0f));
         std::vector<glm::vec4> params(maxLights, glm::vec4(0.0f));
 
-         // 填充数据
+        // 填充数据
         for (size_t i = 0; i < lights.size(); ++i) {
             const auto& light = lights[i];
-            
+
             // 设置颜色和强度
             colors[i] = glm::vec4(light->getColor(), light->getIntensity());
 
             switch (light->getType()) {
-                case LightType::Directional: {
-                    directions[i] = glm::vec4(light->getDirection(), 0.0f);
-                    positions[i] = glm::vec4(0.0f);
-                    params[i] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-                    break;
-                }
-                case LightType::Point: {
-                    positions[i] = glm::vec4(light->getPosition(), 1.0f);
-                    directions[i] = glm::vec4(0.0f);
-                    params[i] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-                    break;
-                }
-                case LightType::Spot: {
-                    positions[i] = glm::vec4(light->getPosition(), 1.0f);
-                    directions[i] = glm::vec4(light->getDirection(), 1.0f);
-                    auto* spotLight = static_cast<const SpotLight*>(light.get());
-                    params[i] = glm::vec4(spotLight->getCutoffAngle(), 2.0f, 0.0f, 0.0f);
-                    break;
-                }
+            case LightType::Directional: {
+                directions[i] = glm::vec4(glm::normalize(light->getDirection()), 0.0f);
+                positions[i] = glm::vec4(0.0f);
+                params[i] = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+                break;
+            }
+            case LightType::Point: {
+                positions[i] = glm::vec4(light->getPosition(), 1.0f);
+                directions[i] = glm::vec4(0.0f);
+                params[i] = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+                break;
+            }
+            case LightType::Spot: {
+                positions[i] = glm::vec4(light->getPosition(), 1.0f);
+                directions[i] = glm::vec4(glm::normalize(light->getDirection()), 1.0f);
+                auto* spotLight = static_cast<const SpotLight*>(light.get());
+                params[i] = glm::vec4(spotLight->getCutoffAngle(), 2.0f, 0.0f, 0.0f);
+                break;
+            }
             }
         }
 
         // 绑定缓冲区并更新数据
         glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-        
+
         // 更新每个数组的数据，注意偏移量
         size_t offset = 0;
         const size_t arraySize = sizeof(glm::vec4) * maxLights;
-        
+
         glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, positions.data());
         offset += arraySize;
         glBufferSubData(GL_UNIFORM_BUFFER, offset, arraySize, directions.data());
@@ -137,10 +140,11 @@ public:
             glUniformBlockBinding(shader.ID, blockIndex, bindingPoint);
             // 将UBO绑定到相同的绑定点
             glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo);
-        } else {
+        }
+        else {
             std::cout << "Warning: LightBlock not found in shader program" << std::endl;
         }
     }
-
 };
+
 #endif // LIGHT_MANAGER_H
