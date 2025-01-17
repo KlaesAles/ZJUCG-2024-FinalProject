@@ -358,6 +358,7 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
         }
         if (!skip)
         {   // 如果纹理尚未加载，则加载
+            //std::cerr << "its me!" << std::endl;
             Texture texture;
             texture.id = TextureFromFile(str.C_Str(), this->directory, gammaCorrection);
             texture.type = typeName;

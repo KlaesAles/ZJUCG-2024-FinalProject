@@ -128,6 +128,11 @@ private:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+public:
+    ShadowManager() = default;
+
+    ~ShadowManager() = default;
+
     void syncShadowDataWithLights(const std::vector<Light*>& lights)
     {
         // 确保 shadowDatas 的大小与 lights 一致
@@ -135,7 +140,7 @@ private:
         {
             ShadowData newData;
             LightType type = lights[shadowDatas.size()]->getType();
-            setupShadowResources(newData, 2048, type); // 初始分辨率为4096
+            setupShadowResources(newData, 2048, type); // 初始分辨率为2048
             shadowDatas.emplace_back(std::move(newData));
         }
         while (shadowDatas.size() > lights.size())
@@ -145,11 +150,6 @@ private:
             shadowDatas.pop_back();
         }
     }
-
-public:
-    ShadowManager() = default;
-
-    ~ShadowManager() = default;
 
     // 修改为接受两个不同的着色器
     void generateShadowMaps(const std::vector<Light*>& lights, Scene& scene, Shader& shadowShader, Shader& pointShadowShader)

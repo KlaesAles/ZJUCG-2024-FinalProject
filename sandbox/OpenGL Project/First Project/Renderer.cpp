@@ -162,7 +162,10 @@ void Renderer::renderFrame()
     // Sidebar toggle button
     ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - (sidebar_open ? sidebar_width : 0) - 30, 30), ImGuiCond_Always);
     ImGui::SetNextWindowSize(ImVec2(30, 30), ImGuiCond_Always);
-    ImGui::Begin("ToggleSidebar", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration);
+    ImGui::Begin("ToggleSidebar", nullptr,
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground |
+        ImGuiWindowFlags_NoDecoration);
     if (ImGui::ArrowButton("##toggle", sidebar_open ? ImGuiDir_Right : ImGuiDir_Left)) {
         sidebar_open = !sidebar_open;
     }
@@ -172,69 +175,326 @@ void Renderer::renderFrame()
     if (sidebar_open) {
         ImGui::SetNextWindowPos(ImVec2(SCR_WIDTH - sidebar_width, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(sidebar_width, SCR_HEIGHT), ImGuiCond_Always);
-        ImGui::Begin("Sidebar", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+        ImGui::Begin("Sidebar", nullptr,
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove);
 
+        //------------------------------------------------------
         // 后处理效果控制
-        ImGui::Text("Post-Processing Effects");
-        auto effectsState = postProcessing.getEffectsState();
-        for (const auto& effect : effectsState) {
-            bool enabled = effect.second;
-            // 1) 开关效果
-            if (ImGui::Checkbox(effect.first.c_str(), &enabled)) {
-                postProcessing.enableEffect(effect.first, enabled);
-            }
-
-            // 2) 如果该效果启用，则根据名称调节参数
-            if (effect.first == "RGB Shift" && enabled) {
-                static float rgbShiftStrength = 0.01f;
-                if (ImGui::SliderFloat("RGB Shift Strength", &rgbShiftStrength, 0.0f, 0.1f)) {
-                    // 更新回调
-                    postProcessing.setEffectConfig("RGB Shift", [](Shader& shader) {
-                        shader.setFloat("strength", rgbShiftStrength);
-                        });
+        //------------------------------------------------------
+        {
+            ImGui::Text("Post-Processing Effects");
+            auto effectsState = postProcessing.getEffectsState();
+            for (const auto& effect : effectsState) {
+                bool enabled = effect.second;
+                if (ImGui::Checkbox(effect.first.c_str(), &enabled)) {
+                    postProcessing.enableEffect(effect.first, enabled);
                 }
-            }
-            else if (effect.first == "Vignette" && enabled) {
-                static float vignetteRadius = 0.5f;
-                static float vignetteSoftness = 0.2f;
-                bool changed = false;
-                changed |= ImGui::SliderFloat("Vignette Radius", &vignetteRadius, 0.0f, 1.0f);
-                changed |= ImGui::SliderFloat("Vignette Softness", &vignetteSoftness, 0.0f, 1.0f);
-
-                if (changed) {
-                    postProcessing.setEffectConfig("Vignette", [=](Shader& shader) {
-                        shader.setFloat("radius", vignetteRadius);
-                        shader.setFloat("softness", vignetteSoftness);
-                        });
+                // 如果启用效果则调节它的强度等参数
+                if (effect.first == "RGB Shift" && enabled) {
+                    static float rgbShiftStrength = 0.01f;
+                    if (ImGui::SliderFloat("RGB Shift Strength", &rgbShiftStrength, 0.0f, 0.1f)) {
+                        postProcessing.setEffectConfig("RGB Shift", [=](Shader& shader) {
+                            shader.setFloat("strength", rgbShiftStrength);
+                            });
+                    }
+                }
+                else if (effect.first == "Vignette" && enabled) {
+                    static float vignetteRadius = 0.5f;
+                    static float vignetteSoftness = 0.2f;
+                    bool changed = false;
+                    changed |= ImGui::SliderFloat("Vignette Radius", &vignetteRadius, 0.0f, 1.0f);
+                    changed |= ImGui::SliderFloat("Vignette Softness", &vignetteSoftness, 0.0f, 1.0f);
+                    if (changed) {
+                        postProcessing.setEffectConfig("Vignette", [=](Shader& shader) {
+                            shader.setFloat("radius", vignetteRadius);
+                            shader.setFloat("softness", vignetteSoftness);
+                            });
+                    }
                 }
             }
         }
 
-
-        ImGui::Separator(); // 分隔符
-
-        // 保存场景
-        ImGui::Text("Save Scene");
-        ImGui::InputText("File Name", saveFileName, IM_ARRAYSIZE(saveFileName)); // 输入文件名
-        if (ImGui::Button("Save")) {
-            std::string filePath = "scenes/" + std::string(saveFileName) + ".json"; // 保存到 scenes 目录
-            saveScene(filePath);
-            availableScenes = getSceneFiles("scenes"); // 更新可用场景列表
-        }
         ImGui::Separator();
 
-        // 加载场景
-        ImGui::Text("Load Scene");
-        if (availableScenes.empty()) {
-            availableScenes = getSceneFiles("scenes"); // 初始化可用场景列表
+        //------------------------------------------------------
+        // 保存与加载场景
+        //------------------------------------------------------
+        {
+            // 保存场景
+            ImGui::Text("Save Scene");
+            ImGui::InputText("File Name", saveFileName, IM_ARRAYSIZE(saveFileName));
+            if (ImGui::Button("Save")) {
+                std::string filePath = "scenes/" + std::string(saveFileName) + ".json";
+                saveScene(filePath);
+                availableScenes = getSceneFiles("scenes");
+            }
+            ImGui::Separator();
+
+            // 加载场景
+            ImGui::Text("Load Scene");
+            if (availableScenes.empty()) {
+                availableScenes = getSceneFiles("scenes");
+            }
+            if (!availableScenes.empty()) {
+                if (ImGui::BeginCombo("Available Scenes", availableScenes[selectedSceneIndex].c_str())) {
+                    for (int i = 0; i < (int)availableScenes.size(); ++i) {
+                        bool isSelected = (selectedSceneIndex == i);
+                        if (ImGui::Selectable(availableScenes[i].c_str(), isSelected)) {
+                            selectedSceneIndex = i;
+                        }
+                        if (isSelected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+                if (ImGui::Button("Load")) {
+                    std::string filePath = "scenes/" + availableScenes[selectedSceneIndex];
+                    loadScene(filePath);
+                }
+            }
+            else {
+                ImGui::Text("No scenes available to load.");
+            }
         }
-        if (!availableScenes.empty()) {
-            // 显示场景文件的下拉框
-            if (ImGui::BeginCombo("Available Scenes", availableScenes[selectedSceneIndex].c_str())) {
-                for (int i = 0; i < availableScenes.size(); ++i) {
-                    bool isSelected = (selectedSceneIndex == i);
-                    if (ImGui::Selectable(availableScenes[i].c_str(), isSelected)) {
-                        selectedSceneIndex = i; // 更新选择的场景索引
+
+        ImGui::Separator();
+
+        //------------------------------------------------------
+        // 调试选项
+        //------------------------------------------------------
+        {
+            ImGui::Checkbox("Debug Light View", &debugLightView);
+            if (debugLightView) {
+                debugMaterialView = false;
+                ImGui::SliderInt("Debug Light Index", &debugLightIndex, 0,
+                    (int)lightManager.getLightCount() - 1);
+            }
+
+            ImGui::Checkbox("Debug Material View", &debugMaterialView);
+            if (debugMaterialView) {
+                debugLightView = false;
+                ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 4);
+            }
+        }
+
+        ImGui::Separator();
+
+        //------------------------------------------------------
+        // 材质参数编辑
+        //------------------------------------------------------
+        {
+            ImGui::Text("Material Parameters");
+            static int selectedObject = 0;
+            static int selectedMesh = 0;
+
+            auto& gameObjects = scene.getGameObjects();
+            if (!gameObjects.empty()) {
+                // 展示所有 GameObject 及其 Mesh
+                ImGui::BeginChild("GameObjects", ImVec2(0, 200), true);
+
+                for (int objIndex = 0; objIndex < (int)gameObjects.size(); ++objIndex) {
+                    const auto& obj = gameObjects[objIndex];
+                    std::string nodeLabel = obj->getName() + "###GameObject_" + std::to_string(objIndex);
+
+                    // 动态计算宽度，确保名称不会被截断
+                    ImVec2 textSize = ImGui::CalcTextSize(nodeLabel.c_str());
+                    ImGui::PushItemWidth(std::max(textSize.x + 20, 200.0f)); // 最小宽度 200，动态调整
+
+                    bool isSelected = (selectedObject == objIndex);
+                    if (ImGui::TreeNodeEx((void*)(intptr_t)objIndex,
+                        ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                        (isSelected ? ImGuiTreeNodeFlags_Selected : 0),
+                        nodeLabel.c_str())) {
+                        const auto& model = obj->getModel();
+                        for (int m = 0; m < (int)model.meshes.size(); ++m) {
+                            std::string meshLabel = "Mesh " + std::to_string(m) +
+                                "###Mesh_" + std::to_string(objIndex) +
+                                "_" + std::to_string(m);
+
+                            // 动态调整 Selectable 宽度
+                            ImVec2 meshTextSize = ImGui::CalcTextSize(meshLabel.c_str());
+                            ImGui::PushItemWidth(std::max(meshTextSize.x + 20, 200.0f));
+
+                            bool meshSelected = (selectedObject == objIndex && selectedMesh == m);
+                            if (ImGui::Selectable(meshLabel.c_str(), meshSelected)) {
+                                selectedObject = objIndex;
+                                selectedMesh = m;
+                            }
+
+                            ImGui::PopItemWidth(); // 恢复默认宽度
+                        }
+                    }
+                    ImGui::PopItemWidth(); // 恢复默认宽度
+                }
+                ImGui::EndChild();
+
+                // 获取选定的材质
+                const auto& selectedObjPtr = gameObjects[selectedObject];
+                if (selectedMesh < selectedObjPtr->getModel().meshes.size()) {
+                    PBRMaterial& material = selectedObjPtr->getPBRMaterial(selectedMesh);
+
+                    ImGui::Separator();
+                    ImGui::Text("Editing: %s - Mesh %d",
+                        selectedObjPtr->getName().c_str(),
+                        selectedMesh);
+
+                    float albedo[3] = { material.albedo.r, material.albedo.g, material.albedo.b };
+                    if (ImGui::ColorEdit3("Albedo", albedo)) {
+                        material.albedo = glm::vec3(albedo[0], albedo[1], albedo[2]);
+                    }
+                    ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f);
+                    ImGui::SliderFloat("Roughness", &material.roughness, 0.05f, 1.0f);
+                    ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f);
+
+                    bool hasAlbedo = (material.albedoMap != 0);
+                    bool hasMetallic = (material.metallicMap != 0);
+                    bool hasRoughness = (material.roughnessMap != 0);
+                    bool hasNormal = (material.normalMap != 0);
+                    bool hasAO = (material.aoMap != 0);
+
+                    if (hasAlbedo) {
+                        ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
+                    }
+                    else {
+                        ImGui::Text("Use Albedo Map: No Texture");
+                    }
+                    if (hasMetallic) {
+                        ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
+                    }
+                    else {
+                        ImGui::Text("Use Metallic Map: No Texture");
+                    }
+                    if (hasRoughness) {
+                        ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
+                    }
+                    else {
+                        ImGui::Text("Use Roughness Map: No Texture");
+                    }
+                    if (hasNormal) {
+                        ImGui::Checkbox("Use Normal Map", &material.useNormalMap);
+                    }
+                    else {
+                        ImGui::Text("Use Normal Map: No Texture");
+                    }
+                    if (hasAO) {
+                        ImGui::Checkbox("Use AO Map", &material.useAOMap);
+                    }
+                    else {
+                        ImGui::Text("Use AO Map: No Texture");
+                    }
+                }
+            }
+            else {
+                ImGui::Text("No objects in the scene.");
+            }
+        }
+
+        ImGui::Separator();
+
+        //------------------------------------------------------
+        // 物体的变换和删除
+        //------------------------------------------------------
+        {
+            ImGui::Text("Scene Objects");
+            auto& gameObjects = scene.getGameObjects();
+
+            static int transformSelectedObjIndex = 0;
+            if (!gameObjects.empty()) {
+                ImGui::BeginChild("Object List Transform", ImVec2(0, 200), true);
+                for (int i = 0; i < (int)gameObjects.size(); ++i) {
+                    auto& gameObject = gameObjects[i];
+                    bool isSelected = (i == transformSelectedObjIndex);
+                    if (ImGui::Selectable(gameObject->getName().c_str(), isSelected)) {
+                        transformSelectedObjIndex = i;
+                    }
+                }
+                ImGui::EndChild();
+
+                ImGui::Separator();
+
+                // 显示并修改位置、旋转、缩放
+                auto& targetObj = gameObjects[transformSelectedObjIndex];
+                glm::vec3 position = targetObj->getPosition();
+                if (ImGui::DragFloat3("Position", &position.x, 0.1f)) {
+                    targetObj->setPosition(position);
+                }
+                glm::vec3 scale = targetObj->getScale();
+                if (ImGui::DragFloat3("Scale", &scale.x, 0.1f, 0.1f, 10.0f)) {
+                    targetObj->setScale(scale);
+                }
+                static float uniformScale = (scale.x + scale.y + scale.z) / 3.0f;
+                if (ImGui::SliderFloat("Uniform Scale", &uniformScale, 0.001f, 5.0f)) {
+                    targetObj->setScale(glm::vec3(uniformScale));
+                }
+                glm::vec3 rotation = targetObj->getRotation();
+                if (ImGui::DragFloat3("Rotation", &rotation.x, 1.0f, 0.0f, 360.0f)) {
+                    targetObj->setRotation(rotation);
+                }
+
+                // 删除该物体
+                if (ImGui::Button("Delete This Model")) {
+                    scene.getGameObjects().erase(scene.getGameObjects().begin() + transformSelectedObjIndex);
+                    transformSelectedObjIndex = 0;
+                }
+            }
+            else {
+                ImGui::Text("No objects in the scene.");
+            }
+        }
+
+        ImGui::Separator();
+
+        //------------------------------------------------------
+        // 添加新模型
+        //------------------------------------------------------
+        static int selectedModelIndex = 0;
+        static glm::vec3 initialPosition = glm::vec3(0.0f);
+        static glm::vec3 initialRotation = glm::vec3(0.0f);
+        static glm::vec3 initialScale = glm::vec3(1.0f);
+
+        // 遍历文件夹并递归查找 .obj 文件
+        std::vector<std::string> availableModels;
+        std::vector<std::string> modelPaths;
+        for (const auto& entry : std::filesystem::recursive_directory_iterator("./resources/objects")) {
+            if (entry.is_regular_file() && entry.path().extension() == ".obj") {
+                // 使用 std::filesystem::path 生成统一的路径
+                std::string fullPath = entry.path().string();
+                std::replace(fullPath.begin(), fullPath.end(), '\\', '/'); // 替换 \ 为 /
+
+                modelPaths.push_back(fullPath); // 保存完整路径
+                availableModels.push_back(entry.path().filename().string()); // 保存文件名
+            }
+        }
+
+        // 自动生成唯一名称
+        auto generateUniqueName = [](const std::string& baseName, Scene& scene) {
+            int counter = 1;
+            std::string uniqueName = baseName;
+            while (true) {
+                bool exists = false;
+                for (const auto& obj : scene.getGameObjects()) {
+                    if (obj->getName() == uniqueName) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    break;
+                }
+                uniqueName = baseName + "_" + std::to_string(counter++);
+            }
+            return uniqueName;
+            };
+
+        // 选择模型文件
+        ImGui::Text("Add New Model");
+
+        if (!availableModels.empty()) {
+            if (ImGui::BeginCombo("Available Models", availableModels[selectedModelIndex].c_str())) {
+                for (int i = 0; i < (int)availableModels.size(); ++i) {
+                    bool isSelected = (i == selectedModelIndex);
+                    if (ImGui::Selectable(availableModels[i].c_str(), isSelected)) {
+                        selectedModelIndex = i;
                     }
                     if (isSelected) {
                         ImGui::SetItemDefaultFocus();
@@ -243,172 +503,168 @@ void Renderer::renderFrame()
                 ImGui::EndCombo();
             }
 
-            // 加载选中的场景
-            if (ImGui::Button("Load")) {
-                std::string filePath = "scenes/" + availableScenes[selectedSceneIndex];
-                loadScene(filePath);
+            static char newObjectName[128] = "NewModel";
+            ImGui::InputText("Object Name", newObjectName, IM_ARRAYSIZE(newObjectName));
+
+            // 设置模型初始参数
+            ImGui::Text("Initial Transform");
+            ImGui::DragFloat3("addPosition", &initialPosition.x, 0.1f);
+            ImGui::DragFloat3("addRotation", &initialRotation.x, 1.0f, 0.0f, 360.0f);
+            ImGui::DragFloat3("addScale", &initialScale.x, 0.1f, 0.1f, 10.0f);
+
+            // 添加模型按钮
+            if (ImGui::Button("Add Model")) {
+                std::string modelPath = modelPaths[selectedModelIndex];
+                std::string baseName = std::string(newObjectName);
+                std::string objectName = generateUniqueName(baseName, scene);
+
+                try {
+                    // 检查贴图加载逻辑在 Model 类中是否完整
+                    auto newObject = std::make_shared<GameObject>(objectName, modelPath, initialPosition, initialScale, initialRotation);
+                    scene.addGameObject(newObject);
+                    ImGui::Text("Model added successfully!");
+                }
+                catch (const std::exception& e) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: %s", e.what());
+                }
             }
         }
         else {
-            ImGui::Text("No scenes available to load.");
+            ImGui::Text("No models available in './resources/objects'.");
         }
-        ImGui::Separator(); // 分隔符
 
-        ImGui::Text("Light Controls");
-        if (lightManager.getLightCount() > 0) {
-            auto spotLightPtr = std::dynamic_pointer_cast<SpotLight>(lightManager.getLight(lightManager.getLightCount() - 1));
-            if (spotLightPtr) {
-                // 强度控制
-                float intensity = spotLightPtr->getIntensity();
-                if (ImGui::SliderFloat("Spotlight Intensity", &intensity, 0.0f, 5.0f)) {
-                    spotLightPtr->setIntensity(intensity);
+        ImGui::Separator();
+
+        //------------------------------------------------------
+        // 光源的添加、编辑、删除
+        //------------------------------------------------------
+        {
+            ImGui::Text("Scene Lights");
+            auto& lights = lightManager.getLights();
+
+            // 添加光源
+            static int selectedLightType = 0;
+            const char* lightTypes[] = {
+                "Directional Light", "Point Light", "Spot Light"
+            };
+            ImGui::Combo("Light Type", &selectedLightType,
+                lightTypes, IM_ARRAYSIZE(lightTypes));
+            if (ImGui::Button("Add Light")) {
+                if (selectedLightType == 0) {
+                    // 定向光
+                    auto dirLight = std::make_shared<DirectionalLight>(
+                        glm::vec3(-1.0f, -1.0f, -1.0f),
+                        glm::vec3(1.0f));
+                    lightManager.addLight(dirLight);
+                    shadowManager.syncShadowDataWithLights(lightManager.getRawLights()); // 同步 ShadowManager
                 }
-
-                // 切光角度控制
-                float cutoffAngle = spotLightPtr->getCutoffAngle();
-                if (ImGui::SliderFloat("Spotlight Cutoff Angle", &cutoffAngle, 1.0f, 45.0f)) {
-                    spotLightPtr->setCutoffAngle(cutoffAngle);
+                else if (selectedLightType == 1) {
+                    // 点光源
+                    auto pointLight = std::make_shared<PointLight>(
+                        glm::vec3(0.0f, 5.0f, 0.0f),
+                        glm::vec3(1.0f));
+                    lightManager.addLight(pointLight);
+                    shadowManager.syncShadowDataWithLights(lightManager.getRawLights()); // 同步 ShadowManager
                 }
-
-                // 颜色控制
-                glm::vec3 color = spotLightPtr->getColor();
-                float colorArray[3] = { color.r, color.g, color.b };
-                if (ImGui::ColorEdit3("Spotlight Color", colorArray)) {
-                    spotLightPtr->setColor(glm::vec3(colorArray[0], colorArray[1], colorArray[2]));
+                else if (selectedLightType == 2) {
+                    // 聚光灯
+                    auto spotLight = std::make_shared<SpotLight>(
+                        glm::vec3(0.0f, 5.0f, 0.0f),
+                        glm::vec3(0.0f, -1.0f, 0.0f),
+                        glm::vec3(1.0f), 1.0f, 45.0f);
+                    lightManager.addLight(spotLight);
+                    shadowManager.syncShadowDataWithLights(lightManager.getRawLights()); // 同步 ShadowManager
                 }
             }
-        }
 
-        ImGui::Separator(); // 分隔符
-        
-        ImGui::Checkbox("Debug Light View", &debugLightView);
-        if (debugLightView) {
-            debugMaterialView = false;
-            ImGui::SliderInt("Debug Light Index", &debugLightIndex, 0, static_cast<int>(lightManager.getLightCount()) - 1, "%d");
-        }
+            ImGui::Separator();
 
-        ImGui::Checkbox("Debug Material View", &debugMaterialView);
-        if (debugMaterialView) {
-            debugLightView = false;
-            ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 4, "%d");
-        }
-
-        ImGui::Separator(); // 分隔符
-
-
-        // 材质参数编辑
-        ImGui::Text("Material Parameters");
-
-        // 选择要编辑的 GameObject 和 Mesh
-        static int selectedObject = 0;
-        static int selectedMesh = 0;
-        auto& gameObjects = scene.getGameObjects();
-        if (!gameObjects.empty()) {
-            ImGui::BeginChild("GameObjects", ImVec2(0, 200), true);
-            for (int objIndex = 0; objIndex < gameObjects.size(); ++objIndex) {
-                const auto& obj = gameObjects[objIndex];
-                bool nodeOpen = false;
-                std::string nodeLabel = obj->getName() + "###GameObject_" + std::to_string(objIndex);
-                if (ImGui::TreeNodeEx((void*)(intptr_t)objIndex, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | (selectedObject == objIndex ? ImGuiTreeNodeFlags_Selected : 0), nodeLabel.c_str())) {
-                    // 展示Mesh列表
-                    const auto& model = obj->getModel();
-                    for (int meshIndex = 0; meshIndex < model.meshes.size(); ++meshIndex) {
-                        std::string meshLabel = "Mesh " + std::to_string(meshIndex) + "###Mesh_" + std::to_string(objIndex) + "_" + std::to_string(meshIndex);
-                        if (ImGui::Selectable(meshLabel.c_str(), selectedObject == objIndex && selectedMesh == meshIndex)) {
-                            selectedObject = objIndex;
-                            selectedMesh = meshIndex;
-                        }
+            // 编辑和删除光源
+            static int lightSelectedIndex = 0;
+            if (!lights.empty()) {
+                // 列表
+                ImGui::BeginChild("Light List", ImVec2(0, 200), true);
+                for (int i = 0; i < (int)lights.size(); ++i) {
+                    std::string label = "Light " + std::to_string(i);
+                    if (lights[i]->getType() == LightType::Directional) label += " (Directional)";
+                    else if (lights[i]->getType() == LightType::Point) label += " (Point)";
+                    else if (lights[i]->getType() == LightType::Spot) label += " (Spot)";
+                    bool isSelected = (i == lightSelectedIndex);
+                    if (ImGui::Selectable(label.c_str(), isSelected)) {
+                        lightSelectedIndex = i;
                     }
-                    ImGui::TreePop();
+                }
+                ImGui::EndChild();
+
+                ImGui::Text("Light Controls");
+                auto& selectedLight = lights[lightSelectedIndex];
+                auto lightType = selectedLight->getType();
+                glm::vec3 color = selectedLight->getColor();
+                float intensity = selectedLight->getIntensity();
+
+                // 通用颜色和强度
+                if (ImGui::ColorEdit3("LightColor", &color.x)) {
+                    selectedLight->setColor(color);
+                }
+                if (ImGui::SliderFloat("LightIntensity", &intensity, 0.0f, 10.0f)) {
+                    selectedLight->setIntensity(intensity);
+                }
+
+                // 根据类型显示不同内容
+                if (lightType == LightType::Directional) {
+                    glm::vec3 direction = selectedLight->getDirection();
+                    if (ImGui::DragFloat3("LightDirection", &direction.x, 0.1f)) {
+                        selectedLight->setDirection(direction);
+                    }
+                }
+                else if (lightType == LightType::Point) {
+                    glm::vec3 position = selectedLight->getPosition();
+                    if (ImGui::DragFloat3("LightPosition", &position.x, 0.1f)) {
+                        selectedLight->setPosition(position);
+                    }
+                }
+                else if (lightType == LightType::Spot) {
+                    glm::vec3 position = selectedLight->getPosition();
+                    glm::vec3 direction = selectedLight->getDirection();
+                    if (ImGui::DragFloat3("LightPosition", &position.x, 0.1f)) {
+                        selectedLight->setPosition(position);
+                    }
+                    if (ImGui::DragFloat3("LightDirection", &direction.x, 0.1f)) {
+                        selectedLight->setDirection(direction);
+                    }
+                    // 聚光灯的Cutoff
+                    float cutoffAngle = dynamic_cast<SpotLight*>(selectedLight.get())->getCutoffAngle();
+                    if (ImGui::SliderFloat("Cutoff Angle", &cutoffAngle, 1.0f, 90.0f)) {
+                        dynamic_cast<SpotLight*>(selectedLight.get())->setCutoffAngle(cutoffAngle);
+                    }
+                }
+
+                // 删除该光源
+                if (ImGui::Button("Delete This Light")) {
+                    if (lightSelectedIndex >= 0 && lightSelectedIndex < lightManager.getLightCount()) {
+                        lightManager.removeLight(lightSelectedIndex);
+                        shadowManager.syncShadowDataWithLights(lightManager.getRawLights());
+                        lightSelectedIndex = std::max(0, lightSelectedIndex - 1); // 更新光源索引
+                    }
                 }
             }
-            ImGui::EndChild();
-
-            // 获取选定的材质
-            const auto& selectedObj = gameObjects[selectedObject];
-            if (selectedMesh < selectedObj->getModel().meshes.size()) {
-                PBRMaterial& material = selectedObj->getPBRMaterial(selectedMesh);
-
-                ImGui::Separator();
-                ImGui::Text("Editing: %s - Mesh %d", selectedObj->getName().c_str(), selectedMesh);
-
-                // 编辑 Albedo 颜色
-                float albedo[3] = { material.albedo.r, material.albedo.g, material.albedo.b };
-                if (ImGui::ColorEdit3("Albedo", albedo)) {
-                    material.albedo = glm::vec3(albedo[0], albedo[1], albedo[2]);
-                }
-
-                // 编辑金属度
-                if (ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f)) {
-                    // 更新逻辑
-                }
-
-                // 编辑粗糙度
-                if (ImGui::SliderFloat("Roughness", &material.roughness, 0.05f, 1.0f)) {
-                    // 更新逻辑
-                }
-
-                // 编辑环境光遮蔽
-                if (ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f)) {
-                    // 更新逻辑
-                }
-
-                bool albedoEditable = material.albedoMap != 0;
-                bool metallicEditable = material.metallicMap != 0;
-                bool roughnessEditable = material.roughnessMap != 0;
-                bool normalEditable = material.normalMap != 0;
-                bool aoEditable = material.aoMap != 0;
-
-                if (albedoEditable) {
-                    ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
-                }
-                else {
-                    ImGui::Text("Use Albedo Map: Disabled (No Texture)");
-                }
-
-                if (metallicEditable) {
-                    ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
-                }
-                else {
-                    ImGui::Text("Use Metallic Map: Disabled (No Texture)");
-                }
-
-                if (roughnessEditable) {
-                    ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
-                }
-                else {
-                    ImGui::Text("Use Roughness Map: Disabled (No Texture)");
-                }
-
-                if (normalEditable) {
-                    ImGui::Checkbox("Use Normal Map", &material.useNormalMap);
-                }
-                else {
-                    ImGui::Text("Use Normal Map: Disabled (No Texture)");
-                }
-
-                if (aoEditable) {
-                    ImGui::Checkbox("Use AO Map", &material.useAOMap);
-                }
-                else {
-                    ImGui::Text("Use AO Map: Disabled (No Texture)");
-                }
+            else {
+                ImGui::Text("No lights in the scene.");
             }
         }
 
-
-        ImGui::Separator(); // 分隔符
-
+        //------------------------------------------------------
         // 帮助信息
+        //------------------------------------------------------
         if (!mouseCaptured) {
+            ImGui::Separator();
             ImGui::Text("Controls Help");
             ImGui::Text("Press TAB to toggle mouse capture");
             ImGui::Text("Current Status: GUI Control Mode");
         }
 
-        ImGui::End();
+        ImGui::End(); // end sidebar
     }
-
     //std::cout << "Rendering frame..." << std::endl;
 
     // 清除缓冲区

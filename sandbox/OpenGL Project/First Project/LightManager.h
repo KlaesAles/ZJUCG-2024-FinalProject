@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <stdexcept>
+#include <nlohmann/json.hpp>
 #include "Light.h"
 #include "shader.h"
 
@@ -22,7 +23,7 @@ private:
 
 public:
     LightManager(unsigned int maxLights = 16)
-        : maxLights(maxLights) {
+        : maxLights(maxLights){
         const size_t blockSize = 4 * sizeof(glm::vec4) * maxLights; // 4个数组，每个数组maxLights个vec4
         // 初始化 UBO
         glGenBuffers(1, &ubo);
@@ -71,8 +72,17 @@ public:
     }
 
     // 获取所有光源的引用
-    const std::vector<std::shared_ptr<Light>>& getLights() const {
+    std::vector<std::shared_ptr<Light>>& getLights() {
         return lights;
+    }
+
+    // 获取原始光源指针列表
+    std::vector<Light*> getRawLights() const {
+        std::vector<Light*> rawLights;
+        for (const auto& light : lights) {
+            rawLights.push_back(light.get());
+        }
+        return rawLights;
     }
 
     // 更新 UBO 数据
@@ -143,6 +153,93 @@ public:
         }
         else {
             std::cout << "Warning: LightBlock not found in shader program" << std::endl;
+        }
+    }
+
+    // 清空光源
+    void clearLights() {
+        lights.clear();
+    }
+
+    // 序列化光源
+    nlohmann::json serialize() const {
+        nlohmann::json lightsJson;
+        for (const auto& light : lights) {
+            nlohmann::json lightJson;
+            lightJson["type"] = static_cast<int>(light->getType());
+            lightJson["color"] = { light->getColor().r, light->getColor().g, light->getColor().b };
+            lightJson["intensity"] = light->getIntensity();
+
+            if (light->getType() == LightType::Directional) {
+                lightJson["direction"] = {
+                    light->getDirection().x,
+                    light->getDirection().y,
+                    light->getDirection().z
+                };
+            }
+            else if (light->getType() == LightType::Point || light->getType() == LightType::Spot) {
+                lightJson["position"] = {
+                    light->getPosition().x,
+                    light->getPosition().y,
+                    light->getPosition().z
+                };
+                if (light->getType() == LightType::Spot) {
+                    lightJson["direction"] = {
+                        light->getDirection().x,
+                        light->getDirection().y,
+                        light->getDirection().z
+                    };
+                    auto* spotLight = static_cast<const SpotLight*>(light.get());
+                    lightJson["cutoffAngle"] = spotLight->getCutoffAngle();
+                }
+            }
+            lightsJson.push_back(lightJson);
+        }
+        return lightsJson;
+    }
+
+    // 反序列化光源
+    void deserialize(const nlohmann::json& lightsJson) {
+        clearLights();
+        for (const auto& lightJson : lightsJson) {
+            LightType type = static_cast<LightType>(lightJson["type"].get<int>());
+            glm::vec3 color = glm::vec3(
+                lightJson["color"][0], lightJson["color"][1], lightJson["color"][2]);
+            float intensity = lightJson["intensity"];
+
+            if (type == LightType::Directional) {
+                glm::vec3 direction = glm::vec3(
+                    lightJson["direction"][0],
+                    lightJson["direction"][1],
+                    lightJson["direction"][2]
+                );
+                auto dirLight = std::make_shared<DirectionalLight>(direction, color, intensity);
+                addLight(dirLight);
+            }
+            else if (type == LightType::Point) {
+                glm::vec3 position = glm::vec3(
+                    lightJson["position"][0],
+                    lightJson["position"][1],
+                    lightJson["position"][2]
+                );
+                auto pointLight = std::make_shared<PointLight>(position, color, intensity);
+                addLight(pointLight);
+            }
+            else if (type == LightType::Spot) {
+                glm::vec3 position = glm::vec3(
+                    lightJson["position"][0],
+                    lightJson["position"][1],
+                    lightJson["position"][2]
+                );
+                glm::vec3 direction = glm::vec3(
+                    lightJson["direction"][0],
+                    lightJson["direction"][1],
+                    lightJson["direction"][2]
+                );
+                float cutoffAngle = lightJson["cutoffAngle"];
+                auto spotLight = std::make_shared<SpotLight>(position, direction, color, intensity, cutoffAngle);
+                addLight(spotLight);
+            }
         }
     }
 };

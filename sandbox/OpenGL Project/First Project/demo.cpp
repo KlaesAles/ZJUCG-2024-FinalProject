@@ -60,14 +60,14 @@ int main()
     // 创建相机
     Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-    // 创建 LightManager
-    LightManager lightManager(16);
-
     // 创建 ShadowManager
     ShadowManager shadowManager;
 
+    // 创建 LightManager
+    LightManager lightManager(16);
+
     // 创建场景
-    Scene scene;
+    Scene scene(lightManager);
 
     // 添加场景物体
     //scene.addGameObject(GameObject("./resources/objects/Cube/Cube.obj"));
