@@ -6,12 +6,12 @@ uniform float far_plane;
 
 void main()
 {
-    // get distance between fragment and light source
+    // 计算片段与光源之间的距离
     float lightDistance = length(FragPos.xyz - lightPos);
 
-    // map to [0;1] range by dividing by far_plane
+    // 将距离映射到 [0, 1] 范围
     lightDistance = lightDistance / far_plane;
 
-    // write this as modified depth
+    // 将映射后的距离作为修改后的深度写入
     gl_FragDepth = lightDistance;
 }

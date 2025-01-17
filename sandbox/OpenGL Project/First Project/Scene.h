@@ -47,7 +47,7 @@ public:
         for (const auto& obj : gameObjects)
         {
             shadowShader.setMat4("model", obj->getModelMatrix());
-            obj->getModel().Draw(shadowShader); // ×¢Òâ´«µÝ `Shader::ID`
+            obj->getModel().Draw(shadowShader);
         }
     }
 

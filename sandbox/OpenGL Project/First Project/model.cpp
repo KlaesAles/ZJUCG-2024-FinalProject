@@ -316,12 +316,18 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 
     std::vector<Texture> metallicMaps = loadMaterialTextures(material, aiTextureType_METALNESS, "texture_metallic");
     textures.insert(textures.end(), metallicMaps.begin(), metallicMaps.end());
+    
+    std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_metallic");
+    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
     std::vector<Texture> roughnessMaps = loadMaterialTextures(material, aiTextureType_SHININESS, "texture_roughness");
     textures.insert(textures.end(), roughnessMaps.begin(), roughnessMaps.end());
 
     std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_NORMALS, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+
+    std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
     std::vector<Texture> aoMaps = loadMaterialTextures(material, aiTextureType_AMBIENT_OCCLUSION, "texture_ao");
     textures.insert(textures.end(), aoMaps.begin(), aoMaps.end());
@@ -361,19 +367,15 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
         }
     }
 
-    // 如果是传统的Specular贴图，尝试映射到Metallic/Roughness
     if (type == aiTextureType_SPECULAR) {
-        // 假设Specular贴图代表金属度
-        // 你可以根据实际情况调整
         for (auto& tex : textures) {
             tex.type = "texture_metallic";
         }
     }
 
-    // 如果是传统的Glossiness贴图，映射到Roughness
-    if (type == aiTextureType_SHININESS) {
+    if (type == aiTextureType_HEIGHT) {
         for (auto& tex : textures) {
-            tex.type = "texture_roughness";
+            tex.type = "texture_normal";
         }
     }
 

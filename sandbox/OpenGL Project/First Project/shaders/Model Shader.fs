@@ -40,6 +40,7 @@ uniform int debugLightView;             // 调试光源模式开关
 uniform int debugLightIndex;            // 调试的光源索引
 uniform int debugMaterialView;          // 调试材质开关
 uniform int debugMaterialIndex;         // 调试的材质索引
+uniform float shadowMapResolution;      // 阴影贴图分辨率
 
 // 常量
 const float PI = 3.14159265359;
@@ -61,6 +62,10 @@ float GeometrySchlickGGX(float NdotV, float roughness);
 float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness);
 vec3 fresnelSchlick(float cosTheta, vec3 F0);
 float CalculateShadow(float type, vec3 FragPos, vec3 normal, vec3 lightDir, int index);
+vec3 getAlbedo(vec2 TexCoords);
+float getMetallic(vec2 TexCoords);
+float getRoughness(vec2 TexCoords);
+float getAO(vec2 TexCoords);
 
 void main()
 {    
@@ -91,13 +96,10 @@ void main()
             }
         } else if (lightType == 1.0) { // 点光源
             vec3 fragToLight = fs_in.FragPos - position[debugLightIndex].xyz;
-            float currentDepth = length(fragToLight); // 当前片段到光源的距离
-            float depthSample = texture(shadowCubeMaps[debugLightIndex], fragToLight).r; // 采样深度
-            depthSample *= far_plane; // 转换到实际深度范围
-
-            // 将深度映射为灰度值
-            float depthValue = currentDepth / far_plane;
-            FragColor = vec4(vec3(depthValue), 1.0);
+            float closestDepth = texture(shadowCubeMaps[debugLightIndex], fragToLight).r * far_plane;
+            float currentDepth = length(fragToLight);
+            FragColor = vec4(vec3(closestDepth / far_plane), 1.0);
+            //FragColor = vec4(vec3((currentDepth) / far_plane), 1.0);
         }
         return;
     }
@@ -125,21 +127,10 @@ void main()
     }
 
     // 获取材质属性
-    vec3 albedo = material.albedo;
-    if (material.useAlbedoMap)
-        albedo = pow(texture(material.albedoMap, fs_in.TexCoords).rgb, vec3(2.2)); // 线性空间
-
-    float metallic = material.metallic;
-    if (material.useMetallicMap)
-        metallic = texture(material.metallicMap, fs_in.TexCoords).r;
-
-    float roughness = material.roughness;
-    if (material.useRoughnessMap)
-        roughness = texture(material.roughnessMap, fs_in.TexCoords).r;
-
-    float ao = material.ao;
-    if (material.useAOMap)
-        ao = texture(material.aoMap, fs_in.TexCoords).r;
+    vec3 albedo = getAlbedo(fs_in.TexCoords);
+    float metallic = getMetallic(fs_in.TexCoords);
+    float roughness = getRoughness(fs_in.TexCoords);
+    float ao = getAO(fs_in.TexCoords);
 
     // 计算基础反射率
     vec3 F0 = vec3(0.04);
@@ -159,10 +150,11 @@ void main()
         } 
         else if(params[i].y == 2.0) { // SpotLight
             L = normalize(position[i].xyz - fs_in.FragPos); // 从片段指向光源的位置
+            //L = normalize(-direction[i].xyz);
 
             float theta = dot(normalize(direction[i].xyz), normalize(-L)); // 计算光线与聚光灯方向的夹角余弦
             float cutoffCos = cos(radians(cutoff)); // 切光角度的余弦值
-            float epsilon = 0.1; // 渐变范围，可根据需要调整
+            float epsilon = 0.05; // 渐变范围
             intensity = clamp((theta - cutoffCos) / epsilon, 0.0, 1.0);
         } 
         else { // DirectionalLight
@@ -175,8 +167,8 @@ void main()
         vec3 radiance;
         
         if(params[i].y == 1.0) { // 点光源
-            distance = length(position[i].xyz - fs_in.FragPos);
-            attenuation = 1.0 / (distance * distance);
+            distance = length(position[i].xyz - fs_in.FragPos) / 5;
+            attenuation = 1 / (distance * distance);
             radiance = color[i].rgb * attenuation;
         } else { // 方向光或聚光灯
             attenuation = 1.0; // 方向光没有衰减
@@ -228,7 +220,7 @@ void main()
 // 计算阴影（方向光、聚光灯和点光源）
 float CalculateShadow(float type, vec3 FragPos, vec3 normal, vec3 lightDir, int index)
 {
-   float shadow = 0.0;
+    float shadow = 0.0;
     if (type == 0.0 || type == 2.0) // 方向光或聚光灯
     {
        vec4 fragPosLightSpace = fs_in.FragPosLightSpace[index];
@@ -243,9 +235,9 @@ float CalculateShadow(float type, vec3 FragPos, vec3 normal, vec3 lightDir, int 
         float closestDepth = texture(shadowMaps[index], projCoords.xy).r; 
         float currentDepth = projCoords.z;
         // 深度偏移
-        float bias = 0.005 * (1.0 - dot(normal, lightDir)); // 动态偏移
+        float bias = 0.05 * (1.0 - dot(normal, lightDir)); // 动态偏移
         // PCF
-        float texelSize = 1.0 / 1024.0;
+        float texelSize = 1.0 / shadowMapResolution;
         for(int x = -1; x <= 1; ++x)
         {
             for(int y = -1; y <= 1; ++y)
@@ -258,10 +250,10 @@ float CalculateShadow(float type, vec3 FragPos, vec3 normal, vec3 lightDir, int 
     }
     else if (type == 1.0) // 点光源
     {
-        return 0.0; // 点光源阴影暂不支持
+        // return 0.0; // 点光源阴影暂不支持
         vec3 fragToLight = FragPos - position[index].xyz;
+        float bias = 0.05 * (1.0 - dot(normal, lightDir));; // 适当调整偏移值
         float currentDepth = length(fragToLight);
-        float bias = 0.05; // 适当调整偏移值
         float closestDepth = texture(shadowCubeMaps[index], fragToLight).r * far_plane;
         shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
         /*
@@ -278,18 +270,30 @@ float CalculateShadow(float type, vec3 FragPos, vec3 normal, vec3 lightDir, int 
         shadow /= float(samples);
         */
     }
-
     return shadow;
 }
 
 // 从法线贴图获取法线
 vec3 getNormalFromMap()
 {
+    if (material.useNormalMap) {
+    vec3 tangentNormal = texture(material.normalMap, fs_in.TexCoords).rgb;
+    tangentNormal = tangentNormal * 2.0 - 1.0;
+
+    vec3 T = normalize(Tangent);
+    vec3 B = normalize(Bitangent);
+    vec3 N = normalize(fs_in.Normal);
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
+    }
+    else{
     vec3 tangentNormal = texture(material.normalMap, fs_in.TexCoords).rgb;
     tangentNormal = tangentNormal * 2.0 - 1.0;
 
     mat3 TBN = mat3(normalize(Tangent), normalize(Bitangent), normalize(fs_in.Normal));
     return normalize(TBN * tangentNormal);
+    }
 }
 
 // GGX分布函数
@@ -334,4 +338,36 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 getAlbedo(vec2 texCoords) {
+    if (material.useAlbedoMap) {
+        return pow(texture(material.albedoMap, texCoords).rgb, vec3(2.2)); // Gamma矫正
+    } else {
+        return material.albedo; // 返回默认颜色
+    }
+}
+
+float getMetallic(vec2 texCoords) {
+    if (material.useMetallicMap) {
+        return texture(material.metallicMap, texCoords).r;
+    } else {
+        return material.metallic; // 返回默认金属度
+    }
+}
+
+float getRoughness(vec2 texCoords) {
+    if (material.useRoughnessMap) {
+        return texture(material.roughnessMap, texCoords).r;
+    } else {
+        return material.roughness; // 返回默认粗糙度
+    }
+}
+
+float getAO(vec2 texCoords) {
+    if (material.useAOMap) {
+        return texture(material.aoMap, texCoords).r;
+    } else {
+        return material.ao; // 返回默认AO
+    }
 }

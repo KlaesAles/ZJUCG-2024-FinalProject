@@ -28,9 +28,6 @@ const int MAX_BONES = 100;
 uniform mat4 bones[MAX_BONES];
 uniform bool useBones;  // 是否使用骨骼动画的开关
 
-uniform sampler2D height[16];              // 位移纹理
-uniform int heightCount;                   // 位移纹理数量
-
 void main()
 {
     // 条件应用骨骼变换
@@ -47,16 +44,6 @@ void main()
 
     // 计算初始位置
     vec4 pos = finalModel * vec4(aPos, 1.0);
-
-    // 位移贴图计算
-    float displacement = 0.0;
-    for (int i = 0; i < heightCount; ++i) {
-        displacement += texture(height[i], aTexCoords).r;
-    }
-    if (heightCount > 0) {
-        displacement = (displacement / float(heightCount)) * 0.1;
-        pos += vec4(mat3(finalModel) * aNormal * displacement, 0.0); // 使用法线进行位移
-    }
 
     // 设置输出 FragPos
     fs_out.FragPos = vec3(pos);

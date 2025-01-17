@@ -78,10 +78,7 @@ private:
 
             // 绑定到帧缓冲
             glBindFramebuffer(GL_FRAMEBUFFER, fb);
-            for (unsigned int i = 0; i < 6; ++i)
-            {
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, tex, 0);
-            }
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex, 0);
             glDrawBuffer(GL_NONE);
             glReadBuffer(GL_NONE);
             checkFramebufferStatus(fb);
@@ -138,11 +135,13 @@ private:
         {
             ShadowData newData;
             LightType type = lights[shadowDatas.size()]->getType();
-            setupShadowResources(newData, 1024, type); // 初始分辨率为1024
+            setupShadowResources(newData, 2048, type); // 初始分辨率为4096
             shadowDatas.emplace_back(std::move(newData));
         }
         while (shadowDatas.size() > lights.size())
         {
+            // 删除多余的阴影资源
+            shadowDatas.back().resource.reset();
             shadowDatas.pop_back();
         }
     }
@@ -184,6 +183,15 @@ public:
                 float near = pointLight->getNearPlane();
                 float far_plane = pointLight->getFarPlane();
                 GLfloat aspect = 1.0f;
+
+                /*
+                std::cout << "==== PointLight Params ====" << std::endl;
+                std::cout << "pos       = (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+                std::cout << "near      = " << near << std::endl;
+                std::cout << "far_plane = " << far_plane << std::endl;
+                std::cout << "aspect    = " << aspect << std::endl;
+                std::cout << "===========================" << std::endl;
+                */
 
                 // 设置投影矩阵
                 glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far_plane);

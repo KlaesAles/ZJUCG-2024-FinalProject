@@ -57,7 +57,7 @@ private:
 
 public:
     DirectionalLight(glm::vec3 dir, glm::vec3 col = glm::vec3(1.0f), float intensity = 1.0f,
-                     float size = 20.0f, float nearP = 1.0f, float farP = 10.0f)
+                     float size = 64.0f, float nearP = 1.0f, float farP = 100.0f)
         : direction(glm::normalize(dir)), color(col), intensity(intensity),
           orthoSize(size), nearPlane(nearP), farPlane(farP) {}
 
@@ -76,7 +76,7 @@ public:
         return glm::lookAt(lightPos, lightTarget, up);
     }
 
-    glm::vec3 getPosition() const override { return -4.0f * direction; }
+    glm::vec3 getPosition() const override { return -40.0f * direction; }
 
     glm::vec3 getDirection() const override { return direction; }
 
@@ -114,7 +114,7 @@ private:
 
 public:
     PointLight(glm::vec3 pos, glm::vec3 col = glm::vec3(1.0f), float intensity = 1.0f,
-               float nearP = 1.0f, float farP = 10.0f)
+               float nearP = 1.0f, float farP = 100.0f)
         : position(pos), color(col), intensity(intensity),
           nearPlane(nearP), farPlane(farP) {}
 
@@ -177,7 +177,7 @@ private:
 
 public:
     SpotLight(glm::vec3 pos, glm::vec3 dir, glm::vec3 col = glm::vec3(1.0f), float intensity = 1.0f,
-              float cutoff = 45.0f, float nearP = 1.0f, float farP = 10.0f)
+              float cutoff = 45.0f, float nearP = 1.0f, float farP = 100.0f)
         : position(pos), direction(glm::normalize(dir)), color(col), intensity(intensity),
           cutoffAngle(cutoff), nearPlane(nearP), farPlane(farP) {}
 

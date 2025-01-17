@@ -83,7 +83,7 @@ int main()
         "character",
         "./resources/objects/character/robot.fbx",
         glm::vec3(0.0f),
-        glm::vec3(0.1f)
+        glm::vec3(0.05f)
     );
 
     // 输出所有可用的动画名称以供参考
@@ -118,12 +118,13 @@ int main()
         lightManager.addLight(pointLight);
     }
 
+    /*
     // 添加聚光灯
     auto spotLight1 = std::make_shared<SpotLight>(
         glm::vec3(0.0f, 10.0f, 10.0f),  // 聚光灯位置
         glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f)), // 聚光灯方向
         glm::vec3(1.0f, 1.0f, 1.0f),   // 白色光
-        0.8f, 0.02f                    // 衰减参数
+        0.8f, 45.0f                    // 衰减参数
     );
     lightManager.addLight(spotLight1);
 
@@ -131,7 +132,7 @@ int main()
         glm::vec3(-10.0f, 10.0f, 5.0f),
         glm::normalize(glm::vec3(1.0f, -1.0f, -1.0f)),
         glm::vec3(1.0f, 1.0f, 0.0f),   // 黄色光
-        0.8f, 0.02f
+        0.8f, 45.0f
     );
     lightManager.addLight(spotLight2);
 
@@ -139,9 +140,10 @@ int main()
         glm::vec3(10.0f, 10.0f, 5.0f),
         glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)),
         glm::vec3(0.0f, 1.0f, 1.0f),   // 青色光
-        0.8f, 0.02f
+        0.8f, 45.0f
     );
-    lightManager.addLight(spotLight3);
+    lightManager.addLight(spotLight3); 
+    */
 
     // 添加定向光
     auto dirLight = std::make_shared<DirectionalLight>(
@@ -149,6 +151,7 @@ int main()
         glm::vec3(1.0f, 1.0f, 1.0f)    // 白色光
     );
     lightManager.addLight(dirLight);
+
 
     /*
     scene.addGameObject(GameObject("./resources/objects/Mini Tokyo/Mini Tokyo.obj", glm::vec3(-27.0f, -3.0f, 0.0f), glm::vec3(0.1f)));

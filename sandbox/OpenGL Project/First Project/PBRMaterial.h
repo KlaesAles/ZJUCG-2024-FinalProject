@@ -7,20 +7,17 @@
 #include "Mesh.h" // 确保包含 Texture 结构体
 
 struct PBRMaterial {
-    // 基本颜色
     glm::vec3 albedo;
     float metallic;
     float roughness;
-    float ao; // 环境光遮蔽
+    float ao;
 
-    // 纹理
     unsigned int albedoMap;
     unsigned int metallicMap;
     unsigned int roughnessMap;
     unsigned int normalMap;
     unsigned int aoMap;
 
-    // 是否使用纹理
     bool useAlbedoMap;
     bool useMetallicMap;
     bool useRoughnessMap;
@@ -41,9 +38,17 @@ struct PBRMaterial {
         useMetallicMap(false),
         useRoughnessMap(false),
         useNormalMap(false),
-        useAOMap(false)
-    {
+        useAOMap(false) {
+    }
+
+    void updateUsageFlags() {
+        useAlbedoMap = albedoMap != 0;
+        useMetallicMap = metallicMap != 0;
+        useRoughnessMap = roughnessMap != 0;
+        useNormalMap = normalMap != 0;
+        useAOMap = aoMap != 0;
     }
 };
+
 
 #endif // PBR_MATERIAL_H

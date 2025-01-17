@@ -74,36 +74,56 @@ public:
         shader.setFloat("material.ao", material.ao);
 
         // 绑定 PBR 纹理
-        unsigned int textureUnit = 0;
+        unsigned int textureUnit = 1;
 
-        if (material.useAlbedoMap && material.albedoMap != 0) {
+        if (material.useAlbedoMap != 0 && material.albedoMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
             glBindTexture(GL_TEXTURE_2D, material.albedoMap);
             shader.setInt("material.albedoMap", textureUnit++);
+            shader.setInt("material.useAlbedoMap", 1);
+        }
+        else {
+            shader.setInt("material.useAlbedoMap", 0);
         }
 
         if (material.useMetallicMap && material.metallicMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
             glBindTexture(GL_TEXTURE_2D, material.metallicMap);
             shader.setInt("material.metallicMap", textureUnit++);
+            shader.setInt("material.useMetallicMap", 1);
+        }
+        else {
+            shader.setInt("material.useMetallicMap", 0);
         }
 
         if (material.useRoughnessMap && material.roughnessMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
             glBindTexture(GL_TEXTURE_2D, material.roughnessMap);
             shader.setInt("material.roughnessMap", textureUnit++);
+            shader.setInt("material.useRoughnessMap", 1);
+        }
+        else {
+            shader.setInt("material.useRoughnessMap", 0);
         }
 
         if (material.useNormalMap && material.normalMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
             glBindTexture(GL_TEXTURE_2D, material.normalMap);
             shader.setInt("material.normalMap", textureUnit++);
+            shader.setInt("material.useNormalMap", 1);
+        }
+        else {
+            shader.setInt("material.useNormalMap", 0);
         }
 
         if (material.useAOMap && material.aoMap != 0) {
             glActiveTexture(GL_TEXTURE0 + textureUnit);
             glBindTexture(GL_TEXTURE_2D, material.aoMap);
             shader.setInt("material.aoMap", textureUnit++);
+            shader.setInt("material.useAOMap", 1);
+        }
+        else {
+            shader.setInt("material.useAOMap", 0);
         }
 
         // 绘制网格
@@ -163,35 +183,29 @@ private:
     }
 
     // 设置 PBR 材质参数
-    void setupPBRMaterial()
-    {
-        // 遍历所有纹理，分配给 PBR 材质
+    void setupPBRMaterial() {
         for (const auto& tex : textures) {
             if (tex.type == "texture_albedo") {
                 material.albedoMap = tex.id;
-                material.useAlbedoMap = true;
             }
             else if (tex.type == "texture_metallic") {
                 material.metallicMap = tex.id;
-                material.useMetallicMap = true;
             }
             else if (tex.type == "texture_roughness") {
                 material.roughnessMap = tex.id;
-                material.useRoughnessMap = true;
             }
             else if (tex.type == "texture_normal") {
                 material.normalMap = tex.id;
-                material.useNormalMap = true;
             }
             else if (tex.type == "texture_ao") {
                 material.aoMap = tex.id;
-                material.useAOMap = true;
             }
         }
 
-        // 如果没有使用纹理，则使用默认参数
+        material.updateUsageFlags();
+
         if (!material.useAlbedoMap) {
-            material.albedo = glm::vec3(1.0f); // 默认白色
+            material.albedo = glm::vec3(1.0f);
         }
         if (!material.useMetallicMap) {
             material.metallic = 0.0f;
@@ -203,6 +217,7 @@ private:
             material.ao = 1.0f;
         }
     }
+
 };
 
 #endif

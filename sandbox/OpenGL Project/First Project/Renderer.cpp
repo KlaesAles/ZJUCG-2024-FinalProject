@@ -6,6 +6,8 @@
 char Renderer::saveFileName[128] = "scene"; // 默认保存文件名
 std::vector<std::string> Renderer::availableScenes = {}; // 初始化为空
 int Renderer::selectedSceneIndex = 0; // 默认选中的场景索引
+float Resolution = 5000.0f;
+float far_plane = 100.0f;
 
 // 构造函数
 Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Camera& cam,
@@ -288,7 +290,7 @@ void Renderer::renderFrame()
         ImGui::Checkbox("Debug Material View", &debugMaterialView);
         if (debugMaterialView) {
             debugLightView = false;
-            ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 10, "%d");
+            ImGui::SliderInt("Debug Material Index", &debugMaterialIndex, 0, 4, "%d");
         }
 
         ImGui::Separator(); // 分隔符
@@ -351,12 +353,46 @@ void Renderer::renderFrame()
                     // 更新逻辑
                 }
 
-                // 编辑是否使用纹理
-                ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
-                ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
-                ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
-                ImGui::Checkbox("Use Normal Map", &material.useNormalMap);
-                ImGui::Checkbox("Use AO Map", &material.useAOMap);
+                bool albedoEditable = material.albedoMap != 0;
+                bool metallicEditable = material.metallicMap != 0;
+                bool roughnessEditable = material.roughnessMap != 0;
+                bool normalEditable = material.normalMap != 0;
+                bool aoEditable = material.aoMap != 0;
+
+                if (albedoEditable) {
+                    ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
+                }
+                else {
+                    ImGui::Text("Use Albedo Map: Disabled (No Texture)");
+                }
+
+                if (metallicEditable) {
+                    ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
+                }
+                else {
+                    ImGui::Text("Use Metallic Map: Disabled (No Texture)");
+                }
+
+                if (roughnessEditable) {
+                    ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
+                }
+                else {
+                    ImGui::Text("Use Roughness Map: Disabled (No Texture)");
+                }
+
+                if (normalEditable) {
+                    ImGui::Checkbox("Use Normal Map", &material.useNormalMap);
+                }
+                else {
+                    ImGui::Text("Use Normal Map: Disabled (No Texture)");
+                }
+
+                if (aoEditable) {
+                    ImGui::Checkbox("Use AO Map", &material.useAOMap);
+                }
+                else {
+                    ImGui::Text("Use AO Map: Disabled (No Texture)");
+                }
             }
         }
 
@@ -412,6 +448,8 @@ void Renderer::renderFrame()
     lightingShader.setMat4("view", view);
     lightingShader.setVec3("viewPos", camera.Position);
     lightingShader.setFloat("material.shininess", 32.0f);
+    lightingShader.setFloat("shadowMapResolution", Resolution);
+    lightingShader.setFloat("far_plane", far_plane);
 
     // 设置所有光源的光空间矩阵
     std::vector<glm::mat4> lightSpaceMatrices;
@@ -428,22 +466,37 @@ void Renderer::renderFrame()
     }
 
     // 绑定阴影贴图
+    int shadowBaseUnit = 16;
     for (size_t i = 0; i < lightManager.getLightCount(); ++i)
     {
         const auto& light = lightManager.getLight(i);
+        GLuint shadowTexture = shadowManager.getShadowTexture(i);
+
         if (light->getType() == LightType::Point)
         {
-            glActiveTexture(GL_TEXTURE0 + i); // 确保纹理单元不冲突
-            glBindTexture(GL_TEXTURE_CUBE_MAP, shadowManager.getShadowTexture(i));
-            lightingShader.setInt("shadowCubeMaps[" + std::to_string(i) + "]", i);
+            if (shadowTexture != 0) // 确保有效的立方体贴图
+            {
+                glActiveTexture(GL_TEXTURE0 + shadowBaseUnit + i);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
+                lightingShader.setInt("shadowCubeMaps[" + std::to_string(i) + "]", shadowBaseUnit + i);
+                //std::cout << "shadowCubeMaps[" << i << "] bound to texture: " << i << std::endl;
+            }
         }
-        else // DirectionalLight or SpotLight
+        else // DirectionalLight 或 SpotLight
         {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, shadowManager.getShadowTexture(i));
-            lightingShader.setInt("shadowMaps[" + std::to_string(i) + "]", i);
+            if (shadowTexture != 0) // 确保有效的 2D 阴影贴图
+            {
+                glActiveTexture(GL_TEXTURE0 + shadowBaseUnit + i);
+                glBindTexture(GL_TEXTURE_2D, shadowTexture);
+                lightingShader.setInt("shadowMaps[" + std::to_string(i) + "]", shadowBaseUnit + i);
+                //std::cout << "shadowMaps[" << i << "] bound to texture: " << i << std::endl;
+            }
         }
     }
+    // 确保0号纹理单元清空绑定
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     lightingShader.setInt("lightCount", static_cast<int>(lightManager.getLightCount()));
 
@@ -619,7 +672,7 @@ void Renderer::updateShadowMaps()
     }
 
     // 设置阴影贴图分辨率
-    shadowManager.updateShadowResolution(4096);
+    shadowManager.updateShadowResolution(Resolution);
 
     // 生成阴影贴图
     shadowManager.generateShadowMaps(lights, scene, shadowShader, pointshadowShader);
