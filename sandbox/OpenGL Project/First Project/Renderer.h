@@ -30,7 +30,8 @@
 #include "Scene.h"
 #include "PostProcessing.h"
 #include "CaptureManager.h"
-#include "Mesh.h" // Include Mesh.h
+#include "Mesh.h"
+#include "skybox.h" // 添加天空盒头文件
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -172,6 +173,24 @@ private:
 
     // 创建球体网格的辅助函数
     std::shared_ptr<Mesh> createSphereMesh(float radius, int segments, int rings);
+
+    // 天空盒相关
+    std::unique_ptr<Shader> skyboxShader;  // 天空盒着色器
+    std::unique_ptr<Skybox> skybox;        // 天空盒对象
+    bool enableSkybox = true;              // 是否启用天空盒
+    std::vector<std::string> skyboxPaths;  // 天空盒贴图路径
+    bool isPanorama = false;               // 是否使用全景图
+
+    // 加载天空盒
+    void loadSkybox(const std::vector<std::string>& paths);
+    // 从全景图加载天空盒
+    void loadSkyboxFromPanorama(const std::string& panoramaPath);
+    // 获取默认天空盒路径
+    std::vector<std::string> getDefaultSkyboxPaths() const;
+    // 获取可用的天空盒列表
+    std::vector<std::string> getSkyboxList(const std::string& directory) const;
+    // 获取可用的全景图列表
+    std::vector<std::string> getPanoramaList(const std::string& directory) const;
 };
 
 #endif // RENDERER_H

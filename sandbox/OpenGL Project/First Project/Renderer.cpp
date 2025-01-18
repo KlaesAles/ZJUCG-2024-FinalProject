@@ -37,8 +37,11 @@ Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Cam
     debugLightView(false), debugLightIndex(0),
     debugMaterialView(false), debugMaterialIndex(0),
     postProcessing(width, height),
-    showBoundingSpheres(false) // 新增：包围球显示标志
+    showBoundingSpheres(false), // 新增：包围球显示标志
+    enableSkybox(true) // 默认启用天空盒
 {
+    // 初始化天空盒
+    loadSkybox(getDefaultSkyboxPaths());
 }
 
 bool Renderer::initialize()
@@ -64,6 +67,13 @@ bool Renderer::initialize()
     // 初始化后处理
     if (!postProcessing.initialize()) {
         std::cerr << "Failed to initialize post-processing!" << std::endl;
+        return false;
+    }
+
+    // 初始化天空盒着色器
+    skyboxShader = std::make_unique<Shader>("./shaders/skybox.vs", "./shaders/skybox.fs");
+    if (!skyboxShader) {
+        std::cerr << "Failed to create skybox shader!" << std::endl;
         return false;
     }
 
@@ -487,6 +497,83 @@ void Renderer::renderFrame()
 
         ImGui::Separator(); // 分隔符
 
+        // 天空盒控制
+        if (ImGui::CollapsingHeader("Skybox Settings")) {
+            ImGui::Checkbox("Enable Skybox", &enableSkybox);
+            
+            static bool usePanorama = false;
+            ImGui::Checkbox("Use Panorama", &usePanorama);
+            
+            if (usePanorama) {
+                static std::vector<std::string> availablePanoramas = getPanoramaList("textures/panorama");
+                static int currentPanorama = 0;
+                
+                if (ImGui::BeginCombo("Panorama", availablePanoramas.empty() ? "No panoramas available" : availablePanoramas[currentPanorama].c_str())) {
+                    for (int i = 0; i < availablePanoramas.size(); i++) {
+                        bool isSelected = (currentPanorama == i);
+                        if (ImGui::Selectable(availablePanoramas[i].c_str(), isSelected)) {
+                            currentPanorama = i;
+                            // 加载全景图
+                            std::string panoramaPath = "textures/panorama/" + availablePanoramas[i];
+                            loadSkyboxFromPanorama(panoramaPath);
+                        }
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // 刷新全景图列表按钮
+                if (ImGui::Button("Refresh Panorama List")) {
+                    availablePanoramas = getPanoramaList("textures/panorama");
+                }
+
+                ImGui::Text("Panorama Directory: textures/panorama");
+                ImGui::Text("Supported formats: .jpg, .png, .hdr");
+            }
+            else {
+                static std::vector<std::string> availableSkyboxes = getSkyboxList("textures/skybox");
+                static int currentSkybox = 0;
+                
+                if (ImGui::BeginCombo("Skybox", availableSkyboxes.empty() ? "No skyboxes available" : availableSkyboxes[currentSkybox].c_str())) {
+                    for (int i = 0; i < availableSkyboxes.size(); i++) {
+                        bool isSelected = (currentSkybox == i);
+                        if (ImGui::Selectable(availableSkyboxes[i].c_str(), isSelected)) {
+                            currentSkybox = i;
+                            // 构建新的天空盒路径
+                            std::vector<std::string> newPaths;
+                            std::string basePath = "textures/skybox/" + availableSkyboxes[i] + "/";
+                            newPaths.push_back(basePath + "right.jpg");
+                            newPaths.push_back(basePath + "left.jpg");
+                            newPaths.push_back(basePath + "top.jpg");
+                            newPaths.push_back(basePath + "bottom.jpg");
+                            newPaths.push_back(basePath + "front.jpg");
+                            newPaths.push_back(basePath + "back.jpg");
+                            loadSkybox(newPaths);
+                        }
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // 刷新天空盒列表按钮
+                if (ImGui::Button("Refresh Skybox List")) {
+                    availableSkyboxes = getSkyboxList("textures/skybox");
+                }
+
+                ImGui::Text("Skybox Directory: textures/skybox");
+                ImGui::Text("Required files for each skybox:");
+                ImGui::BulletText("right.jpg, left.jpg");
+                ImGui::BulletText("top.jpg, bottom.jpg");
+                ImGui::BulletText("front.jpg, back.jpg");
+            }
+        }
+
+        ImGui::Separator(); // 分隔符
+
         // 帮助信息
         if (!mouseCaptured) {
             ImGui::Text("Controls Help");
@@ -574,10 +661,33 @@ void Renderer::renderFrame()
     if (postProcessing.hasEnabledEffects()) {
         postProcessing.begin();
         scene.draw(lightingShader, selectedObject);
+        
+        // 渲染天空盒
+        if (enableSkybox && skybox && skyboxShader) {
+            glDepthFunc(GL_LEQUAL);
+            skyboxShader->use();
+            glm::mat4 skyboxView = glm::mat4(glm::mat3(view)); // 移除平移
+            skyboxShader->setMat4("view", skyboxView);
+            skyboxShader->setMat4("projection", projection);
+            skybox->Draw(*skyboxShader, glm::mat4(1.0f), skyboxView, projection);
+            glDepthFunc(GL_LESS);
+        }
+        
         postProcessing.endAndRender();
     }
     else {
-        scene.draw(lightingShader, selectedObject); // 直接渲染到屏幕
+        scene.draw(lightingShader, selectedObject);
+        
+        // 渲染天空盒
+        if (enableSkybox && skybox && skyboxShader) {
+            glDepthFunc(GL_LEQUAL);
+            skyboxShader->use();
+            glm::mat4 skyboxView = glm::mat4(glm::mat3(view)); // 移除平移
+            skyboxShader->setMat4("view", skyboxView);
+            skyboxShader->setMat4("projection", projection);
+            skybox->Draw(*skyboxShader, glm::mat4(1.0f), skyboxView, projection);
+            glDepthFunc(GL_LESS);
+        }
     }
 
     //std::cout << "Rendering ImGui..." << std::endl;
@@ -1149,4 +1259,126 @@ std::shared_ptr<Mesh> Renderer::createSphereMesh(float radius, int segments, int
     }
 
     return std::make_shared<Mesh>(vertices, indices, textures);
+}
+
+void Renderer::loadSkybox(const std::vector<std::string>& paths)
+{
+    if (paths.size() != 6) {
+        std::cerr << "Error: Skybox requires exactly 6 texture paths" << std::endl;
+        return;
+    }
+
+    try {
+        skybox = std::make_unique<Skybox>(paths);
+        skyboxPaths = paths;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Failed to load skybox: " << e.what() << std::endl;
+    }
+}
+
+std::vector<std::string> Renderer::getDefaultSkyboxPaths() const
+{
+    // 默认天空盒贴图路径
+    return {
+        "textures/skybox/right.jpg",
+        "textures/skybox/left.jpg",
+        "textures/skybox/top.jpg",
+        "textures/skybox/bottom.jpg",
+        "textures/skybox/front.jpg",
+        "textures/skybox/back.jpg"
+    };
+}
+
+std::vector<std::string> Renderer::getSkyboxList(const std::string& directory) const
+{
+    std::vector<std::string> skyboxes;
+    WIN32_FIND_DATAA findData;
+    HANDLE hFind = FindFirstFileA((directory + "/*").c_str(), &findData);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                std::string dirName = findData.cFileName;
+                if (dirName != "." && dirName != "..") {
+                    // 检查是否包含所需的六个文件
+                    bool isValidSkybox = true;
+                    std::vector<std::string> requiredFiles = {"right.jpg", "left.jpg", "top.jpg", "bottom.jpg", "front.jpg", "back.jpg"};
+                    for (const auto& file : requiredFiles) {
+                        std::string fullPath = directory + "/" + dirName + "/" + file;
+                        WIN32_FIND_DATAA fileData;
+                        HANDLE hFileFind = FindFirstFileA(fullPath.c_str(), &fileData);
+                        if (hFileFind == INVALID_HANDLE_VALUE) {
+                            isValidSkybox = false;
+                            break;
+                        }
+                        FindClose(hFileFind);
+                    }
+                    if (isValidSkybox) {
+                        skyboxes.push_back(dirName);
+                    }
+                }
+            }
+        } while (FindNextFileA(hFind, &findData));
+        FindClose(hFind);
+    }
+
+    return skyboxes;
+}
+
+void Renderer::loadSkyboxFromPanorama(const std::string& panoramaPath)
+{
+    try {
+        skybox = std::make_unique<Skybox>(panoramaPath);
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << "Failed to load panorama skybox: " << e.what() << std::endl;
+    }
+}
+
+std::vector<std::string> Renderer::getPanoramaList(const std::string& directory) const
+{
+    std::vector<std::string> panoramas;
+    WIN32_FIND_DATAA findData;
+    
+    // 搜索 HDR 文件
+    std::string searchPath = directory + "/*.hdr";
+    HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findData);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                panoramas.push_back(findData.cFileName);
+            }
+        } while (FindNextFileA(hFind, &findData));
+        FindClose(hFind);
+    }
+
+    // 搜索 JPG 文件
+    searchPath = directory + "/*.jpg";
+    hFind = FindFirstFileA(searchPath.c_str(), &findData);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                panoramas.push_back(findData.cFileName);
+            }
+        } while (FindNextFileA(hFind, &findData));
+        FindClose(hFind);
+    }
+
+    // 搜索 PNG 文件
+    searchPath = directory + "/*.png";
+    hFind = FindFirstFileA(searchPath.c_str(), &findData);
+
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+                panoramas.push_back(findData.cFileName);
+            }
+        } while (FindNextFileA(hFind, &findData));
+        FindClose(hFind);
+    }
+
+    return panoramas;
 }
