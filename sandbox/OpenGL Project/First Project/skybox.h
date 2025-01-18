@@ -51,6 +51,7 @@ public:
 
     void Draw(Shader& shader, glm::mat4 model, glm::mat4 view, glm::mat4 projection);
     unsigned int getCubeMap() const { return texture; }
+    void renderCube();
 
 private:
     unsigned int VAO{}, VBO{}, texture{};
