@@ -1,0 +1,210 @@
+{
+    "lights": [
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "intensity": 1.0,
+            "position": [
+                -7.5,
+                5.0,
+                0.0
+            ],
+            "type": 1
+        },
+        {
+            "color": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "intensity": 1.0,
+            "position": [
+                -2.5,
+                5.0,
+                0.0
+            ],
+            "type": 1
+        },
+        {
+            "color": [
+                0.0,
+                0.0,
+                1.0
+            ],
+            "intensity": 1.0,
+            "position": [
+                2.5,
+                5.0,
+                0.0
+            ],
+            "type": 1
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "intensity": 1.0,
+            "position": [
+                7.5,
+                5.0,
+                0.0
+            ],
+            "type": 1
+        },
+        {
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "direction": [
+                -0.40824827551841736,
+                -0.8164965510368347,
+                -0.40824827551841736
+            ],
+            "intensity": 1.0,
+            "type": 0
+        },
+        {
+            "color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "cutoffAngle": 0.0,
+            "direction": [
+                -0.2532009184360504,
+                -0.0662735253572464,
+                -0.9651409387588501
+            ],
+            "intensity": 0.0,
+            "position": [
+                0.7058133482933044,
+                4.7643632888793945,
+                10.550634384155273
+            ],
+            "type": 2
+        }
+    ],
+    "objects": [
+        {
+            "modelPath": "./resources/objects/character/robot.fbx",
+            "name": "character",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                0.05000000074505806,
+                0.05000000074505806,
+                0.05000000074505806
+            ]
+        },
+        {
+            "modelPath": "./resources/objects/Plane/Plane.obj",
+            "name": "Plane",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        {
+            "modelPath": "./resources/objects/Cube/Cube.obj",
+            "name": "Object_0",
+            "position": [
+                -7.5,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ]
+        },
+        {
+            "modelPath": "./resources/objects/Cylinder/Cylinder.obj",
+            "name": "Object_1",
+            "position": [
+                -2.5,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ]
+        },
+        {
+            "modelPath": "./resources/objects/Cone/Cone.obj",
+            "name": "Object_2",
+            "position": [
+                2.5,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ]
+        },
+        {
+            "modelPath": "./resources/objects/Sphere/Sphere.obj",
+            "name": "Object_3",
+            "position": [
+                7.5,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ]
+        }
+    ]
+}
