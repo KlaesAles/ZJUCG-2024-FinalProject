@@ -140,7 +140,7 @@ void Renderer::initImGui()
         std::cerr << "Failed to initialize ImGui_ImplGlfw." << std::endl;
         return;
     }
-    if (!ImGui_ImplOpenGL3_Init("#version 330")) { // 确保与您的 OpenGL 版本匹配
+    if (!ImGui_ImplOpenGL3_Init("#version 330")) { 
         std::cerr << "Failed to initialize ImGui_ImplOpenGL3." << std::endl;
         return;
     }
@@ -221,41 +221,88 @@ void Renderer::renderFrame()
         ImGui::Begin("Sidebar", nullptr,
             ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove);
+        //------------------------------------------------------
+        // 截屏和录屏控制
+        //------------------------------------------------------
+        if (ImGui::CollapsingHeader("Capture Controls")) {
+            static bool isRecording = false;
+
+            // 截屏按钮
+            if (ImGui::Button("Take Screenshot")) {
+                if (captureManager->captureScreen("./capture")) {
+                    std::cout << "Screenshot taken successfully." << std::endl;
+                }
+                else {
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to take screenshot.");
+                }
+            }
+
+            ImGui::Separator();
+
+            // 录屏按钮
+            if (!isRecording) {
+                if (ImGui::Button("Start Recording")) {
+                    if (captureManager->startRecording("./capture", 30)) {
+                        isRecording = true;
+                        std::cout << "Recording started." << std::endl;
+                    }
+                    else {
+                        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to start recording.");
+                    }
+                }
+            }
+            else {
+                if (ImGui::Button("Stop Recording")) {
+                    captureManager->stopRecording();
+                    isRecording = false;
+                    std::cout << "Recording stopped." << std::endl;
+                }
+            }
+        }
 
         //------------------------------------------------------
         // 后处理效果控制
         //------------------------------------------------------
         {
-            ImGui::Text("Post-Processing Effects");
-            auto effectsState = postProcessing.getEffectsState();
-            for (const auto& effect : effectsState) {
-                bool enabled = effect.second;
-                if (ImGui::Checkbox(effect.first.c_str(), &enabled)) {
-                    postProcessing.enableEffect(effect.first, enabled);
-                }
-                // 如果启用效果则调节它的强度等参数
-                if (effect.first == "RGB Shift" && enabled) {
-                    static float rgbShiftStrength = 0.01f;
-                    if (ImGui::SliderFloat("RGB Shift Strength", &rgbShiftStrength, 0.0f, 0.1f)) {
-                        postProcessing.setEffectConfig("RGB Shift", [=](Shader& shader) {
-                            shader.setFloat("strength", rgbShiftStrength);
-                            });
+            // 添加后处理效果控制到展开框
+            if (ImGui::CollapsingHeader("Post-Processing Effects")) {
+                auto effectsState = postProcessing.getEffectsState();
+
+                for (const auto& effect : effectsState) {
+                    bool enabled = effect.second;
+
+                    // 创建每个效果的复选框
+                    if (ImGui::Checkbox(effect.first.c_str(), &enabled)) {
+                        postProcessing.enableEffect(effect.first, enabled);
                     }
-                }
-                else if (effect.first == "Vignette" && enabled) {
-                    static float vignetteRadius = 0.5f;
-                    static float vignetteSoftness = 0.2f;
-                    bool changed = false;
-                    changed |= ImGui::SliderFloat("Vignette Radius", &vignetteRadius, 0.0f, 1.0f);
-                    changed |= ImGui::SliderFloat("Vignette Softness", &vignetteSoftness, 0.0f, 1.0f);
-                    if (changed) {
-                        postProcessing.setEffectConfig("Vignette", [=](Shader& shader) {
-                            shader.setFloat("radius", vignetteRadius);
-                            shader.setFloat("softness", vignetteSoftness);
-                            });
+
+                    // 如果效果被启用，显示对应的参数调节控件
+                    if (effect.first == "RGB Shift" && enabled) {
+                        static float rgbShiftStrength = 0.01f;
+                        if (ImGui::SliderFloat("RGB Shift Strength", &rgbShiftStrength, 0.0f, 0.1f)) {
+                            postProcessing.setEffectConfig("RGB Shift", [=](Shader& shader) {
+                                shader.setFloat("strength", rgbShiftStrength);
+                                });
+                        }
+                    }
+                    else if (effect.first == "Vignette" && enabled) {
+                        static float vignetteRadius = 0.5f;
+                        static float vignetteSoftness = 0.2f;
+                        bool changed = false;
+
+                        changed |= ImGui::SliderFloat("Vignette Radius", &vignetteRadius, 0.0f, 1.0f);
+                        changed |= ImGui::SliderFloat("Vignette Softness", &vignetteSoftness, 0.0f, 1.0f);
+
+                        if (changed) {
+                            postProcessing.setEffectConfig("Vignette", [=](Shader& shader) {
+                                shader.setFloat("radius", vignetteRadius);
+                                shader.setFloat("softness", vignetteSoftness);
+                                });
+                        }
                     }
                 }
             }
+
         }
 
         ImGui::Separator();
@@ -440,8 +487,9 @@ void Renderer::renderFrame()
         {
             ImGui::Text("Scene Objects");
             auto& gameObjects = scene.getGameObjects();
-
             static int transformSelectedObjIndex = 0;
+            auto& targetObj = gameObjects[transformSelectedObjIndex];
+
             if (!gameObjects.empty()) {
                 ImGui::BeginChild("Object List Transform", ImVec2(0, 200), true);
                 for (int i = 0; i < (int)gameObjects.size(); ++i) {
@@ -456,7 +504,6 @@ void Renderer::renderFrame()
                 ImGui::Separator();
 
                 // 显示并修改位置、旋转、缩放
-                auto& targetObj = gameObjects[transformSelectedObjIndex];
                 glm::vec3 position = targetObj->getPosition();
                 if (ImGui::DragFloat3("Position", &position.x, 0.1f)) {
                     targetObj->setPosition(position);
@@ -479,13 +526,102 @@ void Renderer::renderFrame()
                     scene.getGameObjects().erase(scene.getGameObjects().begin() + transformSelectedObjIndex);
                     transformSelectedObjIndex = 0;
                 }
+
+            //------------------------------------------------------
+            // 动画控制
+            //------------------------------------------------------
+            const auto& animations = targetObj->getModel().animations;
+            if (!animations.empty()) {
+                static int selectedAnimationIndex = 0;
+
+                // 显示动画列表
+                ImGui::Text("Available Animations:");
+                if (ImGui::BeginCombo("Animations", animations[selectedAnimationIndex].getName().c_str())) {
+                    for (int i = 0; i < animations.size(); ++i) {
+                        bool isSelected = (selectedAnimationIndex == i);
+                        if (ImGui::Selectable(animations[i].getName().c_str(), isSelected)) {
+                            selectedAnimationIndex = i;
+                        }
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // 播放动画按钮
+                if (ImGui::Button("Play Animation")) {
+                    targetObj->playAnimation(animations[selectedAnimationIndex].getName());
+                    std::cout << "Playing animation: " << animations[selectedAnimationIndex].getName() << std::endl;
+                }
+
+                // 停止动画按钮
+                if (ImGui::Button("Stop Animation")) {
+                    targetObj->stopAnimation();
+                    std::cout << "Stopped animation." << std::endl;
+                }
+            }
+            else {
+                ImGui::Text("No animations available.");
+            }
+
+
+            //------------------------------------------------------
+            // 导出obj
+            //------------------------------------------------------
+            // 导出按钮
+            if (transformSelectedObjIndex >= 0) {
+                auto selectedObject = gameObjects[transformSelectedObjIndex];
+                ImGui::Text("Selected: %s", selectedObject->getName().c_str());
+
+                if (ImGui::Button("Export as OBJ...")) {
+                    char filename[128] = "";
+                    std::string defaultName = selectedObject->getName() + ".obj";
+                    strcpy_s(filename, sizeof(filename), defaultName.c_str());
+
+                    // 记录当前工作路径
+                    auto originalPath = std::filesystem::current_path();
+
+                    // 打开文件对话框
+                    OPENFILENAMEA ofn;
+                    ZeroMemory(&ofn, sizeof(ofn));
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = glfwGetWin32Window(window);
+                    ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
+                    ofn.lpstrFile = filename;
+                    ofn.nMaxFile = sizeof(filename);
+                    ofn.lpstrTitle = "Save OBJ File";
+                    ofn.Flags = OFN_OVERWRITEPROMPT;
+                    ofn.lpstrDefExt = "obj";
+
+                    if (GetSaveFileNameA(&ofn)) {
+                        if (exportToObj(selectedObject, filename)) {
+                            std::cout << "Object exported successfully to: " << filename << std::endl;
+                        }
+                        else {
+                            std::cerr << "Failed to export object to: " << filename << std::endl;
+                        }
+                    }
+                    // 恢复到原始工作路径
+                    try {
+                        std::filesystem::current_path(originalPath);
+                        std::cout << "Restored working directory to: " << originalPath << std::endl;
+                    }
+                    catch (const std::exception& e) {
+                        std::cerr << "Error restoring working directory: " << e.what() << std::endl;
+                    }
+                }
+            }
+            else {
+                ImGui::Text("No object selected.");
+            }
             }
             else {
                 ImGui::Text("No objects in the scene.");
             }
         }
 
-        ImGui::Separator();
+        ImGui::Separator(); // 分隔符
 
         //------------------------------------------------------
         // 添加新模型
@@ -495,17 +631,20 @@ void Renderer::renderFrame()
         static glm::vec3 initialRotation = glm::vec3(0.0f);
         static glm::vec3 initialScale = glm::vec3(1.0f);
 
-        // 遍历文件夹并递归查找 .obj 文件
+        // 遍历文件夹并递归查找 .obj 和 .fbx 文件
         std::vector<std::string> availableModels;
         std::vector<std::string> modelPaths;
         for (const auto& entry : std::filesystem::recursive_directory_iterator("./resources/objects")) {
-            if (entry.is_regular_file() && entry.path().extension() == ".obj") {
-                // 使用 std::filesystem::path 生成统一的路径
-                std::string fullPath = entry.path().string();
-                std::replace(fullPath.begin(), fullPath.end(), '\\', '/'); // 替换 \ 为 /
+            if (entry.is_regular_file()) {
+                std::string extension = entry.path().extension().string();
+                if (extension == ".obj" || extension == ".fbx") {
+                    // 使用 std::filesystem::path 生成统一的路径
+                    std::string fullPath = entry.path().string();
+                    std::replace(fullPath.begin(), fullPath.end(), '\\', '/'); // 替换 \ 为 /
 
-                modelPaths.push_back(fullPath); // 保存完整路径
-                availableModels.push_back(entry.path().filename().string()); // 保存文件名
+                    modelPaths.push_back(fullPath); // 保存完整路径
+                    availableModels.push_back(entry.path().filename().string()); // 保存文件名
+                }
             }
         }
 
@@ -576,41 +715,6 @@ void Renderer::renderFrame()
             ImGui::Text("No models available in './resources/objects'.");
         }
 
-        ImGui::Separator();
-
-        // 物体名称
-        if (selectedObject != nullptr) {
-            std::string objName = selectedObject->getName();
-
-            // 导出 OBJ 按钮
-            if (ImGui::Button("Export as OBJ...")) {
-                char filename[128] = "";
-                strcpy_s(filename, sizeof(filename), (objName + ".obj").c_str());
-
-                // 打开文件对话框
-                OPENFILENAMEA ofn;
-                ZeroMemory(&ofn, sizeof(ofn));
-                ofn.lStructSize = sizeof(ofn);
-                ofn.hwndOwner = glfwGetWin32Window(window);
-                ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
-                ofn.lpstrFile = filename;
-                ofn.nMaxFile = sizeof(filename);
-                ofn.lpstrTitle = "Save OBJ File";
-                ofn.Flags = OFN_OVERWRITEPROMPT;
-                ofn.lpstrDefExt = "obj";
-
-                if (GetSaveFileNameA(&ofn)) {
-                    if (exportToObj(selectedObject, filename)) {
-                        std::cout << "Object exported successfully to: " << filename << std::endl;
-                    }
-                }
-            }
-        }
-        else {
-            // 处理 selectedObject 为 null 的情况
-            ImGui::Text("No object selected.");
-        }
-
         ImGui::Separator(); // 分隔符
 
         //------------------------------------------------------
@@ -654,8 +758,6 @@ void Renderer::renderFrame()
                     shadowManager.syncShadowDataWithLights(lightManager.getRawLights()); // 同步 ShadowManager
                 }
             }
-
-            ImGui::Separator();
 
             // 编辑和删除光源
             static int lightSelectedIndex = 0;
@@ -1095,70 +1197,6 @@ void Renderer::processInput()
         fPressed = false;
     }
 
-    // 动画控制
-    static bool gPressed = false;
-    static bool hPressed = false;
-    static bool jPressed = false;
-
-    if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-        if (!gPressed) {  // G 键触发 Running 动画
-            gPressed = true;
-            if (Character) {
-                Character->playAnimation("Running");
-                std::cout << "Playing animation: Running" << std::endl;
-            }
-            else {
-                std::cerr << "Character not set in Renderer." << std::endl;
-            }
-        }
-    }
-    else {
-        gPressed = false;  // 松开 G 键
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
-        if (!hPressed) {  // H 键触发 Idle 动画
-            hPressed = true;
-            if (Character) {
-                Character->playAnimation("Idle");
-                std::cout << "Playing animation: Idle" << std::endl;
-            }
-            else {
-                std::cerr << "Character not set in Renderer." << std::endl;
-            }
-        }
-    }
-    else {
-        hPressed = false;  // 松开 H 键
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
-        if (!jPressed) {  // J 键触发 Jump 动画
-            jPressed = true;
-            if (Character) {
-                Character->playAnimation("Jump");
-                std::cout << "Playing animation: Jump" << std::endl;
-            }
-            else {
-                std::cerr << "Character not set in Renderer." << std::endl;
-            }
-        }
-    }
-    else {
-        jPressed = false;  // 松开 J 键
-    }
-
-    // 动画停止逻辑
-    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
-        if (Character) {
-            Character->stopAnimation();
-            std::cout << "Stopped animation." << std::endl;
-        }
-        else {
-            std::cerr << "Character not set in Renderer." << std::endl;
-        }
-    }
-
     // R 键启动/停止录屏
     static bool rPressed = false;
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
@@ -1229,14 +1267,15 @@ void Renderer::drawBoundingSphere(const std::shared_ptr<GameObject>& obj) {
     // 启用线框模式
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // 禁用深度写入但保持深度测试
-    glDepthMask(GL_FALSE);
+    // 深度测试模式：允许绘制靠近摄像机的内容
+    glDepthFunc(GL_LEQUAL);
+    glDisable(GL_DEPTH_TEST); 
 
     // 绘制球体
     sphereMesh->Draw(*basicShader);
 
     // 恢复深度写入
-    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
 
     // 恢复填充模式
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1449,6 +1488,7 @@ std::shared_ptr<GameObject> Renderer::pickObject(const glm::vec3& rayOrigin, con
 
         // 使用更大的包围盒半径来确保能选中物体
         float radius = glm::length(objScale) * 0.5;
+        float minRadius = 0.1f; // 设置最小选中半径
 
         // 计算射线到物体中心的最近点
         glm::vec3 toCenter = objPos - rayOrigin;
@@ -1460,7 +1500,7 @@ std::shared_ptr<GameObject> Renderer::pickObject(const glm::vec3& rayOrigin, con
         float dist = glm::length(closest - objPos);
 
         // 增大选择容差
-        if (dist < radius && tCenter < closestDist) {
+        if (dist < max(radius, minRadius) && tCenter < closestDist) {
             closestDist = tCenter;
             closestObj = obj;
         }

@@ -52,7 +52,7 @@ public:
         const glm::vec3& scale = glm::vec3(1.0f),
         const glm::vec3& rotation = glm::vec3(0.0f),
         bool gamma = false)
-        : name(name), model(modelPath, gamma), animator(&model), position(position), scale(scale), rotation(rotation) {
+        : name(name), model(modelPath, gamma), animator(&model), position(position), scale(scale), rotation(rotation), isSelected(false) {
         updateModelMatrix();
         // 将 Model 中解析出的所有动画添加到 Animator
         for (const auto& anim : model.animations) {

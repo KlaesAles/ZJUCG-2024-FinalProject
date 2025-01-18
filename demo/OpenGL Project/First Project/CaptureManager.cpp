@@ -94,31 +94,32 @@ void CaptureManager::stopRecording() {
 void CaptureManager::recordFrame() {
     if (!recording || !ffmpegPipe) return;
 
-    // 读取当前帧缓冲区像素数据
+    // 读取像素
     glReadPixels(0, 0, SCR_WIDTH, SCR_HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixelBuffer.data());
 
-    // 翻转像素数据
-    std::vector<unsigned char> flippedBuffer(pixelBuffer.size());
-    for (unsigned int y = 0; y < SCR_HEIGHT; ++y) {
-        memcpy(&flippedBuffer[y * SCR_WIDTH * 4],
-            &pixelBuffer[(SCR_HEIGHT - y - 1) * SCR_WIDTH * 4],
-            SCR_WIDTH * 4);
+    // 翻转像素
+    for (unsigned int y = 0; y < SCR_HEIGHT / 2; ++y) {
+        std::swap_ranges(
+            pixelBuffer.begin() + y * SCR_WIDTH * 4,
+            pixelBuffer.begin() + (y + 1) * SCR_WIDTH * 4,
+            pixelBuffer.begin() + (SCR_HEIGHT - y - 1) * SCR_WIDTH * 4
+        );
     }
 
-    // 写入翻转后的像素数据到 ffmpeg 管道
-    fwrite(flippedBuffer.data(), 1, flippedBuffer.size(), ffmpegPipe);
+    // 写入管道
+    fwrite(pixelBuffer.data(), 1, pixelBuffer.size(), ffmpegPipe);
 }
 
-bool CaptureManager::initFfmpegPipe(const std::string& videoPath, int fps) {
-    // ffmpeg 命令示例：将 RGBA 数据流保存为 mp4 格式
-    std::string command = "ffmpeg -y -f rawvideo -vcodec rawvideo "
-        "-pixel_format rgba -video_size " + std::to_string(SCR_WIDTH) + "x" + std::to_string(SCR_HEIGHT) +
-        " -r " + std::to_string(fps) + " -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p " + videoPath;
 
-    // 打开管道
-    ffmpegPipe = _popen(command.c_str(), "w");
+bool CaptureManager::initFfmpegPipe(const std::string& videoPath, int fps) {
+    std::string command = "ffmpeg -y -f rawvideo -vcodec rawvideo "
+        "-pix_fmt rgba -s " + std::to_string(SCR_WIDTH) + "x" + std::to_string(SCR_HEIGHT) +
+        " -r " + std::to_string(fps) + " -i - -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p " + videoPath;
+
+    ffmpegPipe = _popen(command.c_str(), "wb"); // 使用二进制模式
+    char errorBuffer[256]; // 定义缓冲区
     if (!ffmpegPipe) {
-        std::cerr << "[CaptureManager] Failed to open ffmpeg pipe." << std::endl;
+        std::cerr << "[CaptureManager] Failed to open ffmpeg pipe: " << strerror_s(errorBuffer, sizeof(errorBuffer), errno) << std::endl;
         return false;
     }
     return true;
@@ -126,6 +127,7 @@ bool CaptureManager::initFfmpegPipe(const std::string& videoPath, int fps) {
 
 void CaptureManager::closeFfmpegPipe() {
     if (ffmpegPipe) {
+        fflush(ffmpegPipe);  // 确保缓冲区中的数据写入文件
         _pclose(ffmpegPipe);
         ffmpegPipe = nullptr;
     }

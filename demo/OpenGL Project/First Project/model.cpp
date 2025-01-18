@@ -314,6 +314,9 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
     std::vector<Texture> albedoMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_albedo");
     textures.insert(textures.end(), albedoMaps.begin(), albedoMaps.end());
 
+    std::vector<Texture> baseMaps = loadMaterialTextures(material, aiTextureType_BASE_COLOR, "texture_albedo");
+    textures.insert(textures.end(), baseMaps.begin(), baseMaps.end());
+
     std::vector<Texture> metallicMaps = loadMaterialTextures(material, aiTextureType_METALNESS, "texture_metallic");
     textures.insert(textures.end(), metallicMaps.begin(), metallicMaps.end());
     
@@ -371,6 +374,12 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType 
     if (type == aiTextureType_SPECULAR) {
         for (auto& tex : textures) {
             tex.type = "texture_metallic";
+        }
+    }
+
+    if (type == aiTextureType_BASE_COLOR) {
+        for (auto& tex : textures) {
+            tex.type = "texture_albedo";
         }
     }
 
