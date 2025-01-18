@@ -32,14 +32,9 @@ public:
         }
     }
 
-    // ‰÷»æ≥°æ∞
-    void draw(Shader& shader) {
-        for (auto& obj : gameObjects) {
-            shader.setMat4("model", obj->getModelMatrix());
-            obj->uploadBoneUniforms(shader);
-            obj->getModel().Draw(shader);
-        }
-    }
+    // ªÊ÷∆≥°æ∞
+    void draw(Shader& shader) const;
+    void draw(Shader& shader, const std::shared_ptr<GameObject>& selectedObject) const;
 
     // ‰÷»æ“ı”∞Ã˘Õº
     void drawShadowMaps(Shader& shadowShader)

@@ -2,8 +2,26 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#define RPC_NO_WINDOWS_H
+#include <SDKDDKVer.h>
+#include <Windows.h>
+
+// 确保在包含其他头文件之前取消这些宏定义
+#undef byte
+#undef FAR
+#undef near
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <memory>
+#include <vector>
+#include <string>
+#include <functional>
 
 #include "Shader.h"
 #include "Camera.h"
@@ -14,17 +32,9 @@
 #include "CaptureManager.h"
 #include "Mesh.h" // Include Mesh.h
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-
-#include <vector>
-#include <memory>
-#include <functional>
 
 class Renderer {
 public:
@@ -132,6 +142,9 @@ private:
     // 保存和加载场景
     void saveScene(const std::string& filePath);
     void loadScene(const std::string& filePath);
+
+    // 导出为 OBJ 文件
+    bool exportToObj(const std::shared_ptr<GameObject>& obj, const std::string& filePath);
 
     static char saveFileName[128]; // 默认文件名
     static std::vector<std::string> availableScenes; // 可用场景文件列表

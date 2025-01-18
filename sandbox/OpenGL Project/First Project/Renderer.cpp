@@ -1,9 +1,20 @@
-// Renderer.cpp
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#define RPC_NO_WINDOWS_H
+#include <SDKDDKVer.h>
+#include <Windows.h>
+#include <commdlg.h>
+
+// 确保在包含其他头文件之前取消这些宏定义
+#undef byte
+#undef FAR
+#undef near
+
 #include "Renderer.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -299,6 +310,98 @@ void Renderer::renderFrame()
         }
 
         ImGui::Separator(); // 分隔符
+
+        // 选中物体属性窗口
+        if (selectedObject) {
+            ImGui::Text("Selected Object Properties");
+            
+            // 物体名称
+            std::string objName = selectedObject->getName();
+            char nameBuffer[128];
+            strcpy_s(nameBuffer, sizeof(nameBuffer), objName.c_str());
+            if (ImGui::InputText("Name", nameBuffer, sizeof(nameBuffer))) {
+                selectedObject->setName(nameBuffer);
+            }
+
+            // 位置控制
+            glm::vec3 position = selectedObject->getPosition();
+            float pos[3] = { position.x, position.y, position.z };
+            if (ImGui::DragFloat3("Position", pos, 0.1f)) {
+                selectedObject->setPosition(glm::vec3(pos[0], pos[1], pos[2]));
+            }
+
+            // 旋转控制
+            glm::vec3 rotation = selectedObject->getRotation();
+            float rot[3] = { rotation.x, rotation.y, rotation.z };
+            if (ImGui::DragFloat3("Rotation", rot, 1.0f)) {
+                selectedObject->setRotation(glm::vec3(rot[0], rot[1], rot[2]));
+            }
+
+            // 缩放控制
+            glm::vec3 scale = selectedObject->getScale();
+            float scl[3] = { scale.x, scale.y, scale.z };
+            if (ImGui::DragFloat3("Scale", scl, 0.1f)) {
+                selectedObject->setScale(glm::vec3(scl[0], scl[1], scl[2]));
+            }
+
+            // 材质编辑
+            if (ImGui::CollapsingHeader("Materials")) {
+                const auto& model = selectedObject->getModel();
+                for (int meshIndex = 0; meshIndex < model.meshes.size(); ++meshIndex) {
+                    if (ImGui::TreeNode(("Mesh " + std::to_string(meshIndex)).c_str())) {
+                        PBRMaterial& material = selectedObject->getPBRMaterial(meshIndex);
+
+                        // Albedo 颜色
+                        float albedo[3] = { material.albedo.r, material.albedo.g, material.albedo.b };
+                        if (ImGui::ColorEdit3("Albedo", albedo)) {
+                            material.albedo = glm::vec3(albedo[0], albedo[1], albedo[2]);
+                        }
+
+                        // 金属度
+                        ImGui::SliderFloat("Metallic", &material.metallic, 0.0f, 1.0f);
+
+                        // 粗糙度
+                        ImGui::SliderFloat("Roughness", &material.roughness, 0.05f, 1.0f);
+
+                        // 环境光遮蔽
+                        ImGui::SliderFloat("AO", &material.ao, 0.0f, 1.0f);
+
+                        // 纹理设置
+                        ImGui::Checkbox("Use Albedo Map", &material.useAlbedoMap);
+                        ImGui::Checkbox("Use Metallic Map", &material.useMetallicMap);
+                        ImGui::Checkbox("Use Roughness Map", &material.useRoughnessMap);
+
+                        ImGui::TreePop();
+                    }
+                }
+            }
+
+            // 导出 OBJ 按钮
+            if (ImGui::Button("Export as OBJ...")) {
+                char filename[128] = "";
+                strcpy_s(filename, sizeof(filename), (objName + ".obj").c_str());
+                
+                // 打开文件对话框
+                OPENFILENAMEA ofn;
+                ZeroMemory(&ofn, sizeof(ofn));
+                ofn.lStructSize = sizeof(ofn);
+                ofn.hwndOwner = glfwGetWin32Window(window);
+                ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
+                ofn.lpstrFile = filename;
+                ofn.nMaxFile = sizeof(filename);
+                ofn.lpstrTitle = "Save OBJ File";
+                ofn.Flags = OFN_OVERWRITEPROMPT;
+                ofn.lpstrDefExt = "obj";
+
+                if (GetSaveFileNameA(&ofn)) {
+                    if (exportToObj(selectedObject, filename)) {
+                        std::cout << "Object exported successfully to: " << filename << std::endl;
+                    }
+                }
+            }
+        }
+
+        ImGui::Separator(); // 分隔符
         
         ImGui::Checkbox("Debug Light View", &debugLightView);
         if (debugLightView) {
@@ -470,11 +573,11 @@ void Renderer::renderFrame()
 
     if (postProcessing.hasEnabledEffects()) {
         postProcessing.begin();
-        scene.draw(lightingShader);
+        scene.draw(lightingShader, selectedObject);
         postProcessing.endAndRender();
     }
     else {
-        scene.draw(lightingShader); // 直接渲染到屏幕
+        scene.draw(lightingShader, selectedObject); // 直接渲染到屏幕
     }
 
     //std::cout << "Rendering ImGui..." << std::endl;
@@ -497,8 +600,67 @@ void Renderer::renderFrame()
     }
 }
 
+bool Renderer::exportToObj(const std::shared_ptr<GameObject>& obj, const std::string& filePath) {
+    if (!obj) return false;
+
+    std::ofstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filePath << std::endl;
+        return false;
+    }
+
+    // 写入 OBJ 文件头部信息
+    file << "# Exported from OpenGL Project\n";
+    file << "# Object name: " << obj->getName() << "\n\n";
+
+    const Model& model = obj->getModel();
+    int vertexOffset = 1; // OBJ 文件的索引从 1 开始
+
+    // 获取物体的变换矩阵
+    glm::mat4 transform = obj->getModelMatrix();
+
+    for (const auto& mesh : model.meshes) {
+        // 写入顶点数据
+        for (const auto& vertex : mesh.vertices) {
+            // 应用变换矩阵到顶点位置
+            glm::vec4 transformedPos = transform * glm::vec4(vertex.Position, 1.0f);
+            file << "v " << transformedPos.x << " " << transformedPos.y << " " << transformedPos.z << "\n";
+
+            // 写入纹理坐标
+            file << "vt " << vertex.TexCoords.x << " " << vertex.TexCoords.y << "\n";
+
+            // 写入法线
+            glm::vec3 transformedNormal = glm::mat3(glm::transpose(glm::inverse(transform))) * vertex.Normal;
+            transformedNormal = glm::normalize(transformedNormal);
+            file << "vn " << transformedNormal.x << " " << transformedNormal.y << " " << transformedNormal.z << "\n";
+        }
+
+        // 写入面数据
+        file << "\n# Faces\n";
+        for (size_t i = 0; i < mesh.indices.size(); i += 3) {
+            file << "f ";
+            for (size_t j = 0; j < 3; ++j) {
+                int idx = mesh.indices[i + j] + vertexOffset;
+                file << idx << "/" << idx << "/" << idx;
+                if (j < 2) file << " ";
+            }
+            file << "\n";
+        }
+
+        vertexOffset += mesh.vertices.size();
+    }
+
+    file.close();
+    std::cout << "Successfully exported OBJ file to: " << filePath << std::endl;
+    return true;
+}
+
 void Renderer::processInput()
 {
+    // 如果ImGui正在接收键盘输入，不处理键盘事件
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureKeyboard) return;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -514,8 +676,6 @@ void Renderer::processInput()
             }
             else {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                // 切换到第三人称模式时，清除选中的物体
-                selectedObject = nullptr;
             }
         }
     }
@@ -555,6 +715,9 @@ void Renderer::processInput()
             // 将文件保存到当前目录的 Capture 文件夹
             if (captureManager->captureScreen("./capture")) {
                 std::cout << "Screenshot taken successfully." << std::endl;
+            }
+            else {
+                std::cout << "Failed to take screenshot." << std::endl;
             }
         }
     }
@@ -641,7 +804,6 @@ void Renderer::processInput()
     else {
         rPressed = false;
     }
-
 
     // 如果有游戏逻辑回调，执行它
     if (gameLogicCallback) {
@@ -838,6 +1000,10 @@ void Renderer::mouse_button_callback(GLFWwindow* window, int button, int action,
     Renderer* renderer = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
     if (!renderer || renderer->mouseCaptured) return;  // 第一人称模式下不处理
 
+    // 如果鼠标在ImGui界面上，不处理点击事件
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse) return;
+
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         renderer->mouseLeftButtonDown = (action == GLFW_PRESS);
         
@@ -850,13 +1016,24 @@ void Renderer::mouse_button_callback(GLFWwindow* window, int button, int action,
             glm::vec3 rayOrigin = renderer->camera.Position;
             
             // 选择物体
-            renderer->selectedObject = renderer->pickObject(rayOrigin, rayDir);
-            if (renderer->selectedObject) {
+            auto newSelectedObject = renderer->pickObject(rayOrigin, rayDir);
+            if (newSelectedObject) {
+                // 如果之前有选中的物体，取消其选中状态
+                if (renderer->selectedObject) {
+                    renderer->selectedObject->setIsSelected(false);
+                }
+                renderer->selectedObject = newSelectedObject;
+                renderer->selectedObject->setIsSelected(true);
                 // 计算拖动偏移量
                 renderer->dragOffset = renderer->selectedObject->getPosition() - rayOrigin;
             }
-        } else if (action == GLFW_RELEASE) {
-            renderer->selectedObject = nullptr;
+            else {
+                // 只有在点击空白处时才取消选择
+                if (renderer->selectedObject) {
+                    renderer->selectedObject->setIsSelected(false);
+                    renderer->selectedObject = nullptr;
+                }
+            }
         }
     }
 }

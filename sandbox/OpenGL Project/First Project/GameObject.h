@@ -9,12 +9,13 @@
 
 class GameObject {
 private:
-	std::string name;		   // 名称
-    glm::mat4 modelMatrix;     // 模型矩阵，用于物体的变换
-    Model model;               // 模型数据
-    BoundingBox boundingBox;   // 包围盒
+    std::string name;           // 名称
+    glm::mat4 modelMatrix;      // 模型矩阵，用于物体的变换
+    Model model;                // 模型数据
+    BoundingBox boundingBox;    // 包围盒
+    bool isSelected;            // 是否被选中
 
-    glm::vec3 position;        // 位置
+    glm::vec3 position;         // 位置
     glm::vec3 scale;           // 缩放
     glm::vec3 rotation;        // 旋转角度（以度为单位）
 
@@ -51,7 +52,9 @@ public:
         const glm::vec3& scale = glm::vec3(1.0f),
         const glm::vec3& rotation = glm::vec3(0.0f),
         bool gamma = false)
-        : name(name), model(modelPath, gamma), animator(&model), position(position), scale(scale), rotation(rotation) {
+        : name(name), model(modelPath, gamma), animator(&model), 
+          position(position), scale(scale), rotation(rotation), 
+          isSelected(false) {
         updateModelMatrix();
         // 将 Model 中解析出的所有动画添加到 Animator
         for (const auto& anim : model.animations) {
@@ -68,6 +71,11 @@ public:
     // 获取名称
     const std::string& getName() const {
         return name;
+    }
+
+    // 设置名称
+    void setName(const std::string& newName) {
+        name = newName;
     }
 
     // 获取模型
@@ -134,11 +142,14 @@ public:
         }
     }
 
-
     // 获取属性
     const glm::vec3& getPosition() const { return position; }
     const glm::vec3& getScale() const { return scale; }
     const glm::vec3& getRotation() const { return rotation; }
+
+    // 选中状态相关方法
+    bool getIsSelected() const { return isSelected; }
+    void setIsSelected(bool selected) { isSelected = selected; }
 };
 
 #endif // GAME_OBJECT_H
