@@ -10,6 +10,9 @@
 #include "LightManager.h"
 #include "ShadowManager.h"
 #include "Scene.h"
+#include "PostProcessing.h"
+#include "CaptureManager.h"
+#include "character.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -25,102 +28,118 @@
 
 class Renderer {
 public:
-    // ¹¹Ôìº¯Êı
+    // æ„é€ å‡½æ•°
     Renderer(GLFWwindow* window, unsigned int width, unsigned int height, Camera& camera,
-        LightManager& lightManager, ShadowManager& shadowManager, Scene& scene);
+        LightManager& lightManager, ShadowManager& shadowManager, Scene& scene, CharacterMove& ch);
 
-    // ³õÊ¼»¯äÖÈ¾Æ÷
+    // åˆå§‹åŒ–æ¸²æŸ“å™¨
     bool initialize();
 
-    // ÔËĞĞäÖÈ¾Ñ­»·
+    // è¿è¡Œæ¸²æŸ“å¾ªç¯
     void run();
 
-    // ÇåÀí×ÊÔ´
+    // æ¸…ç†èµ„æº
     void cleanup();
 
-    // ÉèÖÃÓÎÏ·Âß¼­»Øµ÷
+    // è®¾ç½®æ¸¸æˆé€»è¾‘å›è°ƒ
     void setGameLogicCallback(std::function<void()> callback) {
         gameLogicCallback = callback;
     }
 
+    // è®¾ç½® character
+    void setCharacter(const std::shared_ptr<GameObject>& character) {
+        Character = character;
+    }
+
 private:
-    // ´°¿Ú³ß´ç
+    // çª—å£å°ºå¯¸
     unsigned int SCR_WIDTH;
     unsigned int SCR_HEIGHT;
 
-    // GLFW´°¿Ú
+    // GLFWçª—å£
     GLFWwindow* window;
 
-    // ÒıÓÃÍâ²¿ÏµÍ³
+    // å¼•ç”¨å¤–éƒ¨ç³»ç»Ÿ
     Camera& camera;
     LightManager& lightManager;
     ShadowManager& shadowManager;
     Scene& scene;
+    CharacterMove& ch;
 
-    // ×ÅÉ«Æ÷
+    // ç€è‰²å™¨
     Shader lightingShader;
     Shader shadowShader;
+    Shader pointshadowShader;
 
-    // Ê±¼ä¹ÜÀí
+    // æŒæœ‰ character çš„æ™ºèƒ½æŒ‡é’ˆ
+    std::shared_ptr<GameObject> Character; 
+
+    // åå¤„ç†
+    PostProcessing postProcessing;
+
+    // æ·»åŠ æˆªå›¾/å½•åˆ¶ç®¡ç†å™¨
+    std::unique_ptr<CaptureManager> captureManager;
+
+    // æ—¶é—´ç®¡ç†
     float deltaTime;
     float lastFrame;
 
-    // Êó±ê¿ØÖÆ
+    // é¼ æ ‡æ§åˆ¶
     bool mouseCaptured;
     float lastX;
     float lastY;
     bool firstMouse;
 
-    // imgui²à±ßÀ¸
+    // imguiä¾§è¾¹æ 
     bool sidebar_open = true;
     float sidebar_width = 400.0f;
 
-    // µ÷ÊÔÊÓÍ¼
+    // è°ƒè¯•è§†å›¾
     bool debugLightView;
     int debugLightIndex;
     bool debugMaterialView;
     int debugMaterialIndex;
 
 
-    // »ñÈ¡³¡¾°ÁĞ±í
+    // è·å–åœºæ™¯åˆ—è¡¨
     std::vector<std::string> getSceneFiles(const std::string& directory);
 
-    // ÓÎÏ·Âß¼­»Øµ÷
+    // æ¸¸æˆé€»è¾‘å›è°ƒ
     std::function<void()> gameLogicCallback;
 
-    // ³õÊ¼»¯ImGui
+    // åˆå§‹åŒ–ImGui
     void initImGui();
 
-    // ÅäÖÃOpenGL×´Ì¬
+    // é…ç½®OpenGLçŠ¶æ€
     void configureOpenGL();
 
-    // ÉèÖÃ»Øµ÷º¯Êı
+    // è®¾ç½®å›è°ƒå‡½æ•°
     void setCallbacks();
 
-    // äÖÈ¾Ò»Ö¡
+    // æ¸²æŸ“ä¸€å¸§
     void renderFrame();
 
-    // ´¦ÀíÊäÈë
+    // å¤„ç†è¾“å…¥
     void processInput();
 
-    // ¸üĞÂÒõÓ°ÌùÍ¼
+    // æ›´æ–°é˜´å½±è´´å›¾
     void updateShadowMaps();
 
-    // ±£´æºÍ¼ÓÔØ³¡¾°
+    // ä¿å­˜å’ŒåŠ è½½åœºæ™¯
     void saveScene(const std::string& filePath);
     void loadScene(const std::string& filePath);
 
-    static char saveFileName[128]; // Ä¬ÈÏÎÄ¼şÃû
-    static std::vector<std::string> availableScenes; // ¿ÉÓÃ³¡¾°ÎÄ¼şÁĞ±í
-    static int selectedSceneIndex; // µ±Ç°Ñ¡ÖĞµÄ³¡¾°Ë÷Òı
+    static char saveFileName[128]; // é»˜è®¤æ–‡ä»¶å
+    static std::vector<std::string> availableScenes; // å¯ç”¨åœºæ™¯æ–‡ä»¶åˆ—è¡¨
+    static int selectedSceneIndex; // å½“å‰é€‰ä¸­çš„åœºæ™¯ç´¢å¼•
 
-    // ¾²Ì¬»Øµ÷º¯Êı - ´°¿Ú´óĞ¡±ä»¯
+    // é™æ€å›è°ƒå‡½æ•° - çª—å£å¤§å°å˜åŒ–
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-    // ¾²Ì¬»Øµ÷º¯Êı - Êó±êÒÆ¶¯
+    // é™æ€å›è°ƒå‡½æ•° - é¼ æ ‡ç§»åŠ¨
     static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 
-    // ¾²Ì¬»Øµ÷º¯Êı - Êó±ê¹öÂÖ
+    // é™æ€å›è°ƒå‡½æ•° - é¼ æ ‡æ»šè½®
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 };
 

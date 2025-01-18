@@ -57,17 +57,17 @@ int main()
     // 配置全局 OpenGL 状态
     glEnable(GL_DEPTH_TEST);
 
-    // 创建 LightManager
-    LightManager lightManager(16);
+    // 创建相机
+    Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
     // 创建 ShadowManager
     ShadowManager shadowManager;
 
-    // 创建场景
-    Scene scene;
+    // 创建 LightManager
+    LightManager lightManager(16);
 
-    // 创建相机
-    Camera camera(scene, glm::vec3(0.0f, 0.0f, 3.0f));
+    // 创建场景
+    Scene scene(lightManager);
 
     // 添加场景物体
     //scene.addGameObject(GameObject("./resources/objects/Cube/Cube.obj"));
@@ -78,7 +78,21 @@ int main()
     //scene.addGameObject(GameObject("./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
     //scene.addGameObject(GameObject("./resources/objects/Mini Tokyo/Mini Tokyo.obj", glm::vec3(0.0f, -4.0f, -8.0f), glm::vec3(0.1f)));
 
-    scene.addGameObject(GameObject("./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
+    // 创建 character 并使用 shared_ptr
+    auto character = std::make_shared<GameObject>(
+        "character",
+        "./resources/objects/character/robot.fbx",
+        glm::vec3(0.0f),
+        glm::vec3(0.01f)
+    );
+
+    // 输出所有可用的动画名称以供参考
+    for (const auto& anim : character->getModel().animations) {
+        std::cout << "Available animation: " << anim.getName() << std::endl;
+    }
+    scene.addGameObject(character);
+
+    scene.addGameObject(std::make_shared<GameObject>("Plane", "./resources/objects/Plane/Plane.obj", glm::vec3(0.0f, 0.0f, 0.0f)));
     
     // 添加基础几何体
     const std::vector<std::string> objectPaths = {
@@ -89,9 +103,10 @@ int main()
     };
 
     for (size_t i = 0; i < objectPaths.size(); ++i) {
+        std::string objectName = "Object_" + std::to_string(i);
         glm::vec3 position = glm::vec3(-7.5f + i * 5.0f, 0.0f, 0.0f); // 一字排开
         glm::vec3 scale = glm::vec3(1.5f); // 统一缩放大小
-        GameObject object(objectPaths[i], position, scale);
+        auto object = std::make_shared<GameObject>(objectName, objectPaths[i], position, scale);
         scene.addGameObject(object);
     }
 
@@ -103,12 +118,13 @@ int main()
         lightManager.addLight(pointLight);
     }
 
+    /*
     // 添加聚光灯
     auto spotLight1 = std::make_shared<SpotLight>(
         glm::vec3(0.0f, 10.0f, 10.0f),  // 聚光灯位置
         glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f)), // 聚光灯方向
         glm::vec3(1.0f, 1.0f, 1.0f),   // 白色光
-        0.8f, 0.02f                    // 衰减参数
+        0.8f, 45.0f                    // 衰减参数
     );
     lightManager.addLight(spotLight1);
 
@@ -116,7 +132,7 @@ int main()
         glm::vec3(-10.0f, 10.0f, 5.0f),
         glm::normalize(glm::vec3(1.0f, -1.0f, -1.0f)),
         glm::vec3(1.0f, 1.0f, 0.0f),   // 黄色光
-        0.8f, 0.02f
+        0.8f, 45.0f
     );
     lightManager.addLight(spotLight2);
 
@@ -124,9 +140,10 @@ int main()
         glm::vec3(10.0f, 10.0f, 5.0f),
         glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f)),
         glm::vec3(0.0f, 1.0f, 1.0f),   // 青色光
-        0.8f, 0.02f
+        0.8f, 45.0f
     );
-    lightManager.addLight(spotLight3);
+    lightManager.addLight(spotLight3); 
+    */
 
     // 添加定向光
     auto dirLight = std::make_shared<DirectionalLight>(
@@ -134,6 +151,7 @@ int main()
         glm::vec3(1.0f, 1.0f, 1.0f)    // 白色光
     );
     lightManager.addLight(dirLight);
+
 
     /*
     scene.addGameObject(GameObject("./resources/objects/Mini Tokyo/Mini Tokyo.obj", glm::vec3(-27.0f, -3.0f, 0.0f), glm::vec3(0.1f)));
@@ -159,9 +177,10 @@ int main()
     }
     */
 
-
+    CharacterMove ch1(character);
     // 创建 Renderer，传递已初始化的资源
-    Renderer renderer(window, SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager, scene);
+    Renderer renderer(window, SCR_WIDTH, SCR_HEIGHT, camera, lightManager, shadowManager, scene, ch1);
+    renderer.setCharacter(character);
     if (!renderer.initialize()) {
         std::cerr << "Failed to initialize Renderer." << std::endl;
         glfwDestroyWindow(window);
@@ -173,11 +192,11 @@ int main()
     auto gameLogic = [&scene]() {
         // 更新物体的包围盒
         for (auto& object : scene.getGameObjects()) {
-            object.setPosition(object.getPosition()); // 更新位置和包围盒
+            object->setPosition(object->getPosition()); // 更新位置和包围盒
         }
 
         // 检测物体之间的碰撞
-        CollisionManager::detectCollisions(scene.getGameObjects());
+        //CollisionManager::detectCollisions(scene.getGameObjects());
     };
 
     // 设置游戏逻辑回调
