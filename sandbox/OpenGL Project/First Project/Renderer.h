@@ -12,6 +12,7 @@
 #include "Scene.h"
 #include "PostProcessing.h"
 #include "CaptureManager.h"
+#include "Mesh.h" // Include Mesh.h
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -82,11 +83,13 @@ private:
     float deltaTime;
     float lastFrame;
 
-    // 鼠标控制
+    // 鼠标相关变量
     bool mouseCaptured;
-    float lastX;
-    float lastY;
+    float lastX, lastY;
     bool firstMouse;
+    bool mouseLeftButtonDown;  // 左键按下状态
+    std::shared_ptr<GameObject> selectedObject;  // 当前选中的物体
+    glm::vec3 dragOffset;  // 拖动偏移量
 
     // imgui侧边栏
     bool sidebar_open = true;
@@ -98,6 +101,9 @@ private:
     bool debugMaterialView;
     int debugMaterialIndex;
 
+    // 包围球显示相关
+    bool showBoundingSpheres = false;  // 控制包围球显示
+    void drawBoundingSphere(const std::shared_ptr<GameObject>& obj);  // 绘制包围球
 
     // 获取场景列表
     std::vector<std::string> getSceneFiles(const std::string& directory);
@@ -135,10 +141,24 @@ private:
     static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
     // 静态回调函数 - 鼠标移动
-    static void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+    static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
     // 静态回调函数 - 鼠标滚轮
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+    // 静态回调函数 - 鼠标按钮
+    static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
+    // 射线拾取相关函数
+    glm::vec3 screenToWorldRay(float mouseX, float mouseY);
+    std::shared_ptr<GameObject> pickObject(const glm::vec3& rayOrigin, const glm::vec3& rayDir);
+
+    // 基础着色器和球体网格的成员变量
+    std::unique_ptr<Shader> basicShader;  // 用于绘制基础图形的着色器
+    std::shared_ptr<Mesh> sphereMesh;     // 用于绘制包围球的网格
+
+    // 创建球体网格的辅助函数
+    std::shared_ptr<Mesh> createSphereMesh(float radius, int segments, int rings);
 };
 
 #endif // RENDERER_H

@@ -1,7 +1,12 @@
 // Renderer.cpp
 #include "Renderer.h"
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <fstream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 char Renderer::saveFileName[128] = "scene"; // 默认保存文件名
 std::vector<std::string> Renderer::availableScenes = {}; // 初始化为空
@@ -17,10 +22,11 @@ Renderer::Renderer(GLFWwindow* win, unsigned int width, unsigned int height, Cam
     pointshadowShader("./shadow/shadow_point.vs", "./shadow/shadow_point.fs", "./shadow/shadow_point.gs"),
     deltaTime(0.0f), lastFrame(0.0f),
     mouseCaptured(true), lastX(width / 2.0f), lastY(height / 2.0f),
-    firstMouse(true),
+    firstMouse(true), mouseLeftButtonDown(false), selectedObject(nullptr), dragOffset(0.0f),
     debugLightView(false), debugLightIndex(0),
     debugMaterialView(false), debugMaterialIndex(0),
-    postProcessing(width, height)
+    postProcessing(width, height),
+    showBoundingSpheres(false) // 新增：包围球显示标志
 {
 }
 
@@ -79,6 +85,20 @@ bool Renderer::initialize()
     // 绑定 Renderer 到窗口的用户指针
     glfwSetWindowUserPointer(window, this);
 
+    // 初始化基础着色器
+    basicShader = std::make_unique<Shader>("./shaders/basic.vs", "./shaders/basic.fs");
+    if (!basicShader) {
+        std::cerr << "Failed to create basic shader!" << std::endl;
+        return false;
+    }
+
+    // 创建球体网格
+    sphereMesh = createSphereMesh(1.0f, 16, 16);  // 半径为1，16x16的细分
+    if (!sphereMesh) {
+        std::cerr << "Failed to create sphere mesh!" << std::endl;
+        return false;
+    }
+
     std::cout << "Renderer initialized successfully." << std::endl;
     return true;
 }
@@ -109,6 +129,7 @@ void Renderer::setCallbacks()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);  // 新增：鼠标按钮回调
 
     // 设置鼠标捕获
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -467,6 +488,13 @@ void Renderer::renderFrame()
     if (captureManager) {
         captureManager->recordFrame();
     }
+
+    // 在所有物体渲染完成后，如果启用了包围球显示，则绘制包围球
+    if (showBoundingSpheres) {
+        for (const auto& obj : scene.getGameObjects()) {
+            drawBoundingSphere(obj);
+        }
+    }
 }
 
 void Renderer::processInput()
@@ -486,11 +514,25 @@ void Renderer::processInput()
             }
             else {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                // 切换到第三人称模式时，清除选中的物体
+                selectedObject = nullptr;
             }
         }
     }
     else {
         tabPressed = false;
+    }
+
+    // 使用 B 键切换包围球显示
+    static bool bPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+        if (!bPressed) {
+            bPressed = true;
+            showBoundingSpheres = !showBoundingSpheres;
+        }
+    }
+    else {
+        bPressed = false;
     }
 
     // 只在鼠标被捕获时处理相机移动
@@ -607,6 +649,51 @@ void Renderer::processInput()
     }
 }
 
+void Renderer::drawBoundingSphere(const std::shared_ptr<GameObject>& obj) {
+    if (!obj) return;
+
+    // 获取物体的位置和缩放
+    glm::vec3 objPos = obj->getPosition();
+    glm::vec3 objScale = obj->getScale();
+    float radius = glm::length(objScale) * 0.5f;
+
+    // 保存当前的着色器程序
+    GLint currentProgram;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
+
+    // 使用简单的着色器绘制线框球体
+    basicShader->use();
+    basicShader->setMat4("projection", camera.GetProjectionMatrix(float(SCR_WIDTH) / float(SCR_HEIGHT)));
+    basicShader->setMat4("view", camera.GetViewMatrix());
+
+    // 创建球体变换矩阵
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, objPos);
+    model = glm::scale(model, glm::vec3(radius));
+    basicShader->setMat4("model", model);
+
+    // 设置线框颜色（使用绿色）
+    basicShader->setVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
+
+    // 启用线框模式
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    // 禁用深度写入但保持深度测试
+    glDepthMask(GL_FALSE);
+    
+    // 绘制球体
+    sphereMesh->Draw(*basicShader);
+    
+    // 恢复深度写入
+    glDepthMask(GL_TRUE);
+    
+    // 恢复填充模式
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // 恢复之前的着色器程序
+    glUseProgram(currentProgram);
+}
+
 void Renderer::updateShadowMaps()
 {
     // 动态生成阴影贴图
@@ -702,26 +789,36 @@ void Renderer::framebuffer_size_callback(GLFWwindow* window, int width, int heig
 void Renderer::mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     Renderer* renderer = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!renderer) return;
 
-    if (renderer && renderer->mouseCaptured)
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (renderer->firstMouse)
     {
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
-
-        if (renderer->firstMouse)
-        {
-            renderer->lastX = xpos;
-            renderer->lastY = ypos;
-            renderer->firstMouse = false;
-        }
-
-        float xoffset = xpos - renderer->lastX;
-        float yoffset = renderer->lastY - ypos; // y坐标是反向的
-
         renderer->lastX = xpos;
         renderer->lastY = ypos;
+        renderer->firstMouse = false;
+    }
 
+    float xoffset = xpos - renderer->lastX;
+    float yoffset = renderer->lastY - ypos;
+
+    renderer->lastX = xpos;
+    renderer->lastY = ypos;
+
+    if (renderer->mouseCaptured) {
+        // 第一人称模式：控制相机
         renderer->camera.ProcessMouseMovement(xoffset, yoffset);
+    } else if (renderer->mouseLeftButtonDown && renderer->selectedObject) {
+        // 第三人称模式：拖动物体
+        glm::vec3 rayDir = renderer->screenToWorldRay(xpos, ypos);
+        glm::vec3 rayOrigin = renderer->camera.Position;
+        
+        // 计算新的物体位置
+        float distance = glm::length(renderer->dragOffset);
+        glm::vec3 newPos = rayOrigin + rayDir * distance;
+        renderer->selectedObject->setPosition(newPos);
     }
 }
 
@@ -733,4 +830,146 @@ void Renderer::scroll_callback(GLFWwindow* window, double xoffset, double yoffse
     {
         renderer->camera.ProcessMouseScroll(static_cast<float>(yoffset));
     }
+}
+
+// 静态回调函数 - 鼠标按钮
+void Renderer::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    Renderer* renderer = static_cast<Renderer*>(glfwGetWindowUserPointer(window));
+    if (!renderer || renderer->mouseCaptured) return;  // 第一人称模式下不处理
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        renderer->mouseLeftButtonDown = (action == GLFW_PRESS);
+        
+        if (action == GLFW_PRESS) {
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            
+            // 发射射线
+            glm::vec3 rayDir = renderer->screenToWorldRay(static_cast<float>(xpos), static_cast<float>(ypos));
+            glm::vec3 rayOrigin = renderer->camera.Position;
+            
+            // 选择物体
+            renderer->selectedObject = renderer->pickObject(rayOrigin, rayDir);
+            if (renderer->selectedObject) {
+                // 计算拖动偏移量
+                renderer->dragOffset = renderer->selectedObject->getPosition() - rayOrigin;
+            }
+        } else if (action == GLFW_RELEASE) {
+            renderer->selectedObject = nullptr;
+        }
+    }
+}
+
+// 屏幕坐标转世界射线
+glm::vec3 Renderer::screenToWorldRay(float mouseX, float mouseY)
+{
+    // 将屏幕坐标转换为标准化设备坐标 (-1 到 1)
+    float x = (2.0f * mouseX) / SCR_WIDTH - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / SCR_HEIGHT;
+    
+    // 构建裁剪空间坐标
+    glm::vec4 clipCoords(x, y, -1.0f, 1.0f);
+    
+    // 转换到视图空间
+    float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
+    glm::mat4 projInverse = glm::inverse(camera.GetProjectionMatrix(aspectRatio));
+    glm::vec4 viewCoords = projInverse * clipCoords;
+    viewCoords.z = -1.0f;
+    viewCoords.w = 0.0f;
+    
+    // 转换到世界空间
+    glm::mat4 viewInverse = glm::inverse(camera.GetViewMatrix());
+    glm::vec4 worldCoords = viewInverse * viewCoords;
+    
+    // 获取射线方向并归一化
+    glm::vec3 rayDir = glm::normalize(glm::vec3(worldCoords));
+    return rayDir;
+}
+
+// 射线拾取物体
+std::shared_ptr<GameObject> Renderer::pickObject(const glm::vec3& rayOrigin, const glm::vec3& rayDir)
+{
+    float closestDist = std::numeric_limits<float>::max();
+    std::shared_ptr<GameObject> closestObj = nullptr;
+    
+    for (auto& obj : scene.getGameObjects()) {
+        // 获取物体的包围盒
+        glm::vec3 objPos = obj->getPosition();
+        glm::vec3 objScale = obj->getScale();
+        
+        // 使用更大的包围盒半径来确保能选中物体
+        float radius = glm::length(objScale) * 0.5;
+        
+        // 计算射线到物体中心的最近点
+        glm::vec3 toCenter = objPos - rayOrigin;
+        float tCenter = glm::dot(toCenter, rayDir);
+        
+        if (tCenter < 0) continue;  // 物体在射线后方
+        
+        glm::vec3 closest = rayOrigin + rayDir * tCenter;
+        float dist = glm::length(closest - objPos);
+        
+        // 增大选择容差
+        if (dist < radius && tCenter < closestDist) {
+            closestDist = tCenter;
+            closestObj = obj;
+        }
+    }
+    
+    return closestObj;
+}
+
+// 创建球体网格的辅助函数
+std::shared_ptr<Mesh> Renderer::createSphereMesh(float radius, int segments, int rings) {
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    std::vector<Texture> textures;  // 空纹理列表，因为我们只需要绘制线框
+
+    // 生成顶点
+    for (int ring = 0; ring <= rings; ++ring) {
+        float phi = glm::pi<float>() * float(ring) / float(rings);
+        for (int segment = 0; segment <= segments; ++segment) {
+            float theta = 2.0f * glm::pi<float>() * float(segment) / float(segments);
+
+            float x = radius * sin(phi) * cos(theta);
+            float y = radius * cos(phi);
+            float z = radius * sin(phi) * sin(theta);
+
+            glm::vec3 position(x, y, z);
+            glm::vec3 normal = glm::normalize(position);
+            glm::vec2 texCoords(float(segment) / segments, float(ring) / rings);
+
+            Vertex vertex;
+            vertex.Position = position;
+            vertex.Normal = normal;
+            vertex.TexCoords = texCoords;
+            vertex.Tangent = glm::vec3(0.0f);
+            vertex.Bitangent = glm::vec3(0.0f);
+            // 初始化骨骼数据
+            for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
+                vertex.boneIDs[i] = -1;
+                vertex.weights[i] = 0.0f;
+            }
+            vertices.push_back(vertex);
+        }
+    }
+
+    // 生成索引
+    for (int ring = 0; ring < rings; ++ring) {
+        for (int segment = 0; segment < segments; ++segment) {
+            unsigned int current = ring * (segments + 1) + segment;
+            unsigned int next = current + segments + 1;
+
+            indices.push_back(current);
+            indices.push_back(next);
+            indices.push_back(current + 1);
+
+            indices.push_back(next);
+            indices.push_back(next + 1);
+            indices.push_back(current + 1);
+        }
+    }
+
+    return std::make_shared<Mesh>(vertices, indices, textures);
 }
